@@ -1,0 +1,21 @@
+- non-stock bespin colors, just for branding
+- navigation control panel somehow (see 'hud')
+- store each slide contents as jade, convert on the fly
+- allow inline editing of divs/spans
+
+
+- redis is persistence layer
+
+schema:
+
+- presentations: list of presentation ids
+- presentation-<pid>-slides: list of slide ids
+- presentation-settings: json blob corresponding to presentation settings (default css, author?, time created, etc.)
+- slide-<pid>-<sid>: json blob used to generate slide sid of presentation pid
+- slide-<pid>-<sid>-comments: list of comments made about this slide
+
+the process to generate an HTML slide out of a json blob is:
+  - convert into JS
+  - run JS through set of transformations (include css)
+  each of those is an html fragment, who are all aggregated into one
+  
