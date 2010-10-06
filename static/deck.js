@@ -129,17 +129,55 @@ var slideshow;
                'past', 'current', 'future',
                'far-future', 'distant-slide' ],
     startEditing: function() {
-      bespin.useBespin(this._node).then(function(env) {
-        slideshow.env = env;
-        env.editor.focus = true ;
-      });
+      // get the jade "source" of the slide
+      var req = new XMLHttpRequest();
+      req.open('GET', window.location.pathname + '/slide/' + (this._count - 1), true);
+      var node = this._node;
+      req.onreadystatechange = function (aEvt) {
+        if (req.readyState == 4) {
+          if (req.status == 200) {
+            bespin.useBespin(node).then(function(env) {
+              slideshow.env = env;
+              env.settings.set('tabstop', 2);
+              env.editor.value = req.responseText;
+              env.editor.focus = true ;
+            });
+          }
+          else {
+            console.log("Error loading page\n");
+          }
+        }
+      };
+      req.send(null);
     },
     stopEditing: function() {
       var editor = this._node.firstChild;
-      var newhtml = slideshow.env.editor.value;
+      var newcontents = slideshow.env.editor.value;
       var slide = editor.parentNode;
       slide.removeChild(editor);
-      slide.innerHTML = newhtml;
+
+      var params = [];
+      params.push(encodeURIComponent("jade") + "=" + encodeURIComponent(newcontents));
+      var qparams = params.join("&");
+      var req = new XMLHttpRequest();
+      var url = window.location.pathname + '/save/' + ( this._count -1 )+ '?' + qparams;
+      req.open('GET', url, true);
+      console.log('doing call to ' + url);
+      var node = this._node;
+      req.onreadystatechange = function (aEvt) {
+        if (req.readyState == 4) {
+          if (req.status == 200) {
+            // we have the html conversion ready to use.
+            slide.innerHTML = req.responseText;
+          }
+          else {
+            console.log("Error loading page\n");
+          }
+        }
+      };
+      req.send(null);
+
+      //slide.innerHTML = newhtml;
       //
       //console.log('bespin: ', bespin);
       //console.log('env: ', slideshow.env);

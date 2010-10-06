@@ -1,21 +1,27 @@
-- non-stock bespin colors, just for branding
-- navigation control panel somehow (see 'hud')
-- store each slide contents as jade, convert on the fly
+x redis is persistence layer
+x store each slide contents as jade, convert on the fly
+
+P1
+- add slide after, before (+,a, +,b)
+- delete slide (- + confirm)
+- change slide master (aka css stylesheet)
+- figure out commenting system & auth (could have impact on data model)
+- comments: each slide should have an (authenticated) comment queue
 - allow inline editing of divs/spans
+- site bar slides down if hover in top?
+- control panel slides up if hover in bottom?
+- setup basic auth with stupid IDs for now
+
+# oauth will require running on public url - not sure how to do dev work w/ that.
+  - authentication:
+  - if you login, you can mark a deck private
+  - if you make a deck private, you can say who you want to have read/comment access
 
 
-- redis is persistence layer
+P2
+- add keyboard shortcut HUD
+- reorder slides (later, needs real UI)
+- non-stock bespin colors, just for branding
+- UI navigation control panel somehow (see 'hud')
+- figure out a way to indicate what went wrong if jade markup is off.
 
-schema:
-
-- presentations: list of presentation ids
-- presentation-<pid>-slides: list of slide ids
-- presentation-settings: json blob corresponding to presentation settings (default css, author?, time created, etc.)
-- slide-<pid>-<sid>: json blob used to generate slide sid of presentation pid
-- slide-<pid>-<sid>-comments: list of comments made about this slide
-
-the process to generate an HTML slide out of a json blob is:
-  - convert into JS
-  - run JS through set of transformations (include css)
-  each of those is an html fragment, who are all aggregated into one
-  
