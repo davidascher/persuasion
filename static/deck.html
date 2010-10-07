@@ -1,33 +1,29 @@
 <!DOCTYPE html>
-<!--
-  Copyright 2010 Google Inc.
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-
-  Original slides: Marcin Wichary (mwichary@google.com)
-  Modifications: Ernest Delgado (ernestd@google.com)
-                 Alex Russell (slightlyoff@chromium.org)
-                 Brad Neuberg
--->
-<html manifest="cache.manifest">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>HTML5 Presentation</title>
+    <title>${TITLE}</title>
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans|Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="/static/deck.css" rel="stylesheet" type="text/css" media="screen"/>
     <link id="bespin_base" href="/static/bespin"/>
-    <script src="/static/bespin/BespinEmbedded.js"></script>  </head>
+    <script src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script src="/static/bespin/BespinEmbedded.js"></script>
+  </head>
   <body>
+    <div id="userpanel">
+      ${USERPANEL}
+    </div>
+    <div id="commentbox">
+      <div id="commentheader"><span id="commentheadercount">3</span> <span id="commentheaderspan">comments</span></div>
+      <ul id="comments" class="comments">
+        <li id="c1" class="comment"><span class="who">john</span><span class="comment">this is cool</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
+        <li id="c2" class="comment"><span class="who">ahmed</span><span class="comment">this is great</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
+        <li id="c3" class="comment"><span class="who">yusuf</span><span class="comment">this is awesome!</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
+      </ul>
+      <div id="newcommmentbox">
+        <textarea id="newcomment" onclick="alert('got it')" placeholder="enter your thoughts"></textarea>
+      </div>
+    </div>
     <div class="presentation">
       <div id="presentation-counter"></div>
       <div class="slides">
@@ -39,146 +35,8 @@
           </ul>
         </div>
         ${SLIDES}
-        <!--<div class="slide">-->
-        <!--  <style>-->
-        <!--    .landing p {-->
-        <!--      font-size: 35px;-->
-        <!--    }-->
-        <!--    #disclaimer-message {-->
-        <!--      font-size: 20px;-->
-        <!--    }-->
-        <!--  </style>-->
-        <!---->
-        <!--  <section class="middle landing">-->
-        <!--    <p>This presentation is an HTML5 website</p>-->
-        <!--    <p>Press <span class="key">&rarr;</span> key to advance.</p>-->
-        <!--    <p>Zoom in/out: <span class="key">Ctrl or Command</span> + <span class="key">+/-</span></p>-->
-        <!---->
-        <!--    <p id="disclaimer-message">only works with modern browsers</p>-->
-        <!--  </section>-->
-        <!--</div>-->
-        <!---->
-        <!--<div class="slide">-->
-        <!--  <style>-->
-        <!--    .intro h1, .intro h2 {-->
-        <!--      color: black;-->
-        <!--    }-->
-        <!--    .intro h1 {-->
-        <!--      letter-spacing: -2px;-->
-        <!--      font-size: 96px;-->
-        <!--    }-->
-        <!--    .intro h2 {-->
-        <!--      margin-top: -5px;-->
-        <!--      font-size: 40px;-->
-        <!--      letter-spacing: -1px;-->
-        <!--    }-->
-        <!--  </style>-->
-        <!--  <section class="middle intro">-->
-        <!--    <hgroup>-->
-        <!---->
-        <!--      <h1>-->
-        <!--        ${title}-->
-        <!--      </h1>-->
-        <!--      <h2>-->
-        <!--        ${subtitle}-->
-        <!--      </h2>-->
-        <!--    </hgroup>-->
-        <!--    <p>${author}</p>-->
-        <!--  </section>-->
-        <!---->
-        <!--</div>-->
-        <!--<div class="slide">-->
-        <!--  <style>-->
-        <!--    p.resource-link {-->
-        <!--      font-size: 40px;-->
-        <!--    }-->
-        <!--    p.resource-link a {-->
-        <!--      color: blue;-->
-        <!--      text-decoration: underline;-->
-        <!--      border: none;-->
-        <!--    }-->
-        <!--  </style>-->
-        <!---->
-        <!--  <section class="middle formula">-->
-        <!--    asdasdas ~=-->
-        <!--    <span class="html">HTML</span>-->
-        <!--    +-->
-        <!--    <span class="css">CSS</span>-->
-        <!--    +-->
-        <!--    <span class="js">JS APIs</span>-->
-        <!--    <p>-->
-        <!--      HTML5 <em class="stroke">=</em> Next Generation Features for Modern Web Development-->
-        <!--    </p>-->
-        <!---->
-        <!--    <p class="resource-link">-->
-        <!--      <a href="http://slides.html5rocks.com">http://slides.html5rocks.com</a>-->
-        <!--      <a href="http://www.html5rocks.com">http://www.html5rocks.com</a>-->
-        <!--    </p>-->
-        <!--  </section>-->
-        <!--</div>-->
-        <!--<div class="slide">-->
-        <!--  <style>-->
-        <!--    p.resource-link {-->
-        <!--      font-size: 40px;-->
-        <!--    }-->
-        <!--    p.resource-link a {-->
-        <!--      color: blue;-->
-        <!--      text-decoration: underline;-->
-        <!--      border: none;-->
-        <!--    }-->
-        <!--  </style>-->
-        <!---->
-        <!--  <section class="middle formula">-->
-        <!--    HTML5 ~=-->
-        <!--    <span class="html">HTML</span>-->
-        <!--    +-->
-        <!--    <span class="css">CSS</span>-->
-        <!--    +-->
-        <!--    <span class="js">JS APIs</span>-->
-        <!--    <p>-->
-        <!--      HTML5 <em class="stroke">=</em> Next Generation Features for Modern Web Development-->
-        <!--    </p>-->
-        <!---->
-        <!--    <p class="resource-link">-->
-        <!--      <a href="http://slides.html5rocks.com">http://slides.html5rocks.com</a>-->
-        <!--      <a href="http://www.html5rocks.com">http://www.html5rocks.com</a>-->
-        <!--    </p>-->
-        <!--  </section>-->
-        <!--</div>-->
-        <!--<div class="slide">-->
-        <!--  <style>-->
-        <!--    p.resource-link {-->
-        <!--      font-size: 40px;-->
-        <!--    }-->
-        <!--    p.resource-link a {-->
-        <!--      color: blue;-->
-        <!--      text-decoration: underline;-->
-        <!--      border: none;-->
-        <!--    }-->
-        <!--  </style>-->
-        <!---->
-        <!--  <section class="middle formula">-->
-        <!--    HTML5 ~=-->
-        <!--    <span class="html">HTML</span>-->
-        <!--    +-->
-        <!--    <span class="css">CSS</span>-->
-        <!--    +-->
-        <!--    <span class="js">JS APIs</span>-->
-        <!--    <p>-->
-        <!--      HTML5 <em class="stroke">=</em> Next Generation Features for Modern Web Development-->
-        <!--    </p>-->
-        <!---->
-        <!--    <p class="resource-link">-->
-        <!--      <a href="http://slides.html5rocks.com">http://slides.html5rocks.com</a>-->
-        <!--      <a href="http://www.html5rocks.com">http://www.html5rocks.com</a>-->
-        <!--    </p>-->
-        <!--  </section>-->
-        <!--</div>-->
-
       </div> <!-- slides -->
-
     </div> <!-- presentation -->
-
     <script src="/static/deck.js" type="text/javascript"></script>
   </body>
 </html>

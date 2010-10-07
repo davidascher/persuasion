@@ -130,9 +130,11 @@ var slideshow;
                'far-future', 'distant-slide' ],
     startEditing: function() {
       // get the jade "source" of the slide
-      var req = new XMLHttpRequest();
-      req.open('GET', window.location.pathname + '/slide/' + (this._count - 1), true);
       var node = this._node;
+      var req = new XMLHttpRequest();
+      var url = window.location.pathname + '/slide/' + (this._count - 1);
+
+      req.open('GET', url);
       req.onreadystatechange = function (aEvt) {
         if (req.readyState == 4) {
           if (req.status == 200) {
@@ -143,12 +145,9 @@ var slideshow;
               env.editor.focus = true ;
             });
           }
-          else {
-            console.log("Error loading page\n");
-          }
         }
-      };
-      req.send(null);
+      }
+      req.send("");
     },
     stopEditing: function() {
       var editor = this._node.firstChild;
@@ -159,10 +158,9 @@ var slideshow;
       var params = [];
       params.push(encodeURIComponent("jade") + "=" + encodeURIComponent(newcontents));
       var qparams = params.join("&");
-      var req = new XMLHttpRequest();
       var url = window.location.pathname + '/save/' + ( this._count -1 )+ '?' + qparams;
-      req.open('GET', url, true);
-      console.log('doing call to ' + url);
+      var req = new XMLHttpRequest();
+      req.open('GET', url);
       var node = this._node;
       req.onreadystatechange = function (aEvt) {
         if (req.readyState == 4) {
@@ -170,20 +168,9 @@ var slideshow;
             // we have the html conversion ready to use.
             slide.innerHTML = req.responseText;
           }
-          else {
-            console.log("Error loading page\n");
-          }
         }
       };
-      req.send(null);
-
-      //slide.innerHTML = newhtml;
-      //
-      //console.log('bespin: ', bespin);
-      //console.log('env: ', slideshow.env);
-      //console.log('env.editor: ', slideshow.env.editor);
-      //console.log('value', slideshow.env.editor.value);
-      //editor.parentNode.removeChild
+      req.send("");
     },
     setState: function(state) {
       if (typeof state != 'string') {
@@ -279,12 +266,12 @@ var slideshow;
         function(e) { _t.handleKeyDown(e); }, false);
     doc.addEventListener('keyup', 
         function(e) { _t.handleKeyUp(e); }, false);
-    doc.addEventListener('keypress', 
-        function(e) { _t.handleKeyPress(e); }, false);
+    //doc.addEventListener('keypress', 
+    //    function(e) { _t.handleKeyPress(e); }, false);
     doc.addEventListener('mousewheel', 
         function(e) { _t.handleWheel(e); }, false);
-    doc.addEventListener('click', 
-        function(e) { _t.handleClick(e); }, false);
+    //doc.addEventListener('click', 
+    //    function(e) { _t.handleClick(e); }, false);
     doc.addEventListener('DOMMouseScroll', 
         function(e) { _t.handleWheel(e); }, false);
     doc.addEventListener('touchstart', 
@@ -297,6 +284,7 @@ var slideshow;
   };
 
   SlideShow.prototype = {
+    editing: false,
     _slides: [],
     _update: function(dontPush) {
       document.querySelector('#presentation-counter').innerText = this.current;
@@ -370,11 +358,6 @@ var slideshow;
         return;
       }
     },
-    handleKeyPress: function(e) {
-      if (e.keyCode == 13) {
-        this.editCurrentSlide();
-      }
-    },
     handleKeyUp: function(e) {
       // hard to detect meta key being raised specifically, so we just do
       // it all the time.  might be good to be smarter. XXX
@@ -385,10 +368,13 @@ var slideshow;
       //  removeClass(document.getElementById('hup'), "hidden");
       //}
       if (e.keyCode == 27) {
-        if (this.editing)
+        if (this.editing) {
           this.stopEditingCurrentSlide();
-        else
+        } else {
           this.editCurrentSlide();
+        }
+        e.preventDefault(); 
+        e.stopPropagation();
       }
       if (e.keyCode == 13 && e.ctrlKey) {
         this.stopEditingCurrentSlide();

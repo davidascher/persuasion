@@ -6,8 +6,35 @@ var express = require('express'),
     path = require('path'),
     url = require('url'),
     jade = require('jade');
+    connect = require('connect'), 
+    MemoryStore = require('connect/middleware/session/memory'),
+    auth = require('./lib/auth');
 
-var app = express.createServer();
+// N.B. TO USE Any of the OAuth or RPX strategies you will need to provide
+// a copy of the example_keys_file (named keys_file) 
+try {
+  var example_keys= require('./keys_file');
+  for(var key in example_keys) {
+    global[key]= example_keys[key];
+  }
+}
+catch(e) {
+  console.log('Unable to locate the keys_file.js file.  Please copy and ammend the example_keys_file.js as appropriate');
+  sys.exit();
+}
+
+var app = express.createServer(
+                        connect.cookieDecoder(), 
+                        connect.session({ store: new MemoryStore({ reapInterval: -1 }) }),
+                        connect.bodyDecoder() /* Only required for the janrain strategy*/,
+                        auth( [
+                              auth.Anonymous(),
+                              auth.Twitter({consumerKey: twitterConsumerKey, consumerSecret: twitterConsumerSecret}),
+                              auth.Facebook({appId : fbId, appSecret: fbSecret, scope: "email", callback: fbCallbackAddress}),
+                              ])
+                        );
+
+
 var redis = require('redis-client').createClient();
 
 app.use(express.favicon());
@@ -70,10 +97,6 @@ app.error(function(err, req, res){
 
 // Routes
 
-app.get('/', function(req, res){
-  res.render('index.jade');
-});
-
 app.get('/404', function(req, res){
     throw new NotFound;
 });
@@ -89,6 +112,102 @@ app.get('/static/(*.*)', function(req, res, next){
   res.sendfile(filename);
 });
 
+// -- AUTH (from connect-auth/examples/app.js)
+app.get ('/auth/twitter', function(req, res, params) {
+console.log('in /auth/twitter');
+  var next = url.parse(req.url, true).query.next;
+  if (next) {
+    req.sessionStore.set('persuasion', {'next': next});
+  }
+  req.authenticate(['twitter'], function(error, authenticated) { 
+    if( authenticated ) {
+      var next = req.sessionStore.get('persuasion', function(err, data, meta) {
+        res.writeHead(303, {"Location": data['next']});
+        res.end();
+      });
+    }
+    else {
+      res.writeHead(200, {'Content-Type': 'text/html'})
+      res.end("<html><h1>Twitter authentication failed :( </h1></html>")
+    }
+  });
+})
+
+app.get ('/auth/facebook', function(req, res, params) {
+  req.authenticate(['facebook'], function(error, authenticated) {
+    res.writeHead(200, {'Content-Type': 'text/html'})
+    if( authenticated ) {
+      res.end("<html><h1>Hello Facebook user:" + JSON.stringify( req.getAuthDetails().user ) + ".</h1></html>")
+    }
+    else {
+      res.end("<html><h1>Facebook authentication failed :( </h1></html>")
+    }
+  });
+})
+
+app.get('/auth/anon', function(req, res, params) {
+  req.authenticate(['anon'], function(error, authenticated) { 
+    res.writeHead(200, {'Content-Type': 'text/html'})
+    res.end("<html><h1>Hello! Full anonymous access</h1></html>")
+  });
+})
+
+app.get ('/logout', function(req, res, params) {
+  req.logout();
+  var next = url.parse(req.url, true).query.next;
+  res.writeHead(303, { 'Location': next });
+  res.end('');
+})
+
+app.get('/', function(req, res, params) {
+  var self=this;
+  //console.log("req.params", req.params);
+  //console.log("params", params);
+  //console.log("req.query", req.query);
+  //console.log("req.query", JSON.stringify(req.query));
+  res.writeHead(200, {'Content-Type': 'text/html'})
+  if( !req.isAuthenticated() ) {
+    res.end('<html>                                              \n\
+        <head>                                             \n\
+          <title>connect Auth -- Not Authenticated</title> \n\
+          <script src="http://static.ak.fbcdn.net/connect/en_US/core.js"></script> \n\
+        </head>                                            \n\
+        <body>                                             \n\
+          <div id="wrapper">                               \n\
+            <h1>Not authenticated</h1>                     \n\
+            <div class="fb_button" id="fb-login" style="float:left; background-position: left -188px">          \n\
+              <a href="/auth/facebook" class="fb_button_medium">        \n\
+                <span id="fb_login_text" class="fb_button_text"> \n\
+                  Connect with Facebook                    \n\
+                </span>                                    \n\
+              </a>                                         \n\
+            </div>                                         \n\
+            <div style="float:left;margin-left:5px">       \n\
+              <a href="/auth/twitter" style="border:0px">  \n\
+                <img style="border:0px" src="http://apiwiki.twitter.com/f/1242697715/Sign-in-with-Twitter-darker.png"/>\n\
+              </a>                                         \n\
+            </div>                                         \n\
+          </div>                                           \n\
+        </body>                                            \n\
+      </html>')
+  }
+  else {
+    res.end('<html>                                              \n\
+        <head>                                             \n\
+          <title>Express Auth -- Authenticated</title>\n\
+        </head>                                            \n\
+        <body>                                             \n\
+          <div id="wrapper">                               \n\
+            <h1>Authenticated</h1>     \n\
+          ' + JSON.stringify( req.getAuthDetails().user ) + '   \n\
+           <h2><a href="/logout">Logout</a></h2>                \n\
+          </div>                                           \n\
+        </body>                                            \n\
+      </html>')
+  }
+})
+
+
 app.get('/:path/slide/:sid', function(req, res, next) {
   var path = req.params.path;
   var sid = req.params.sid;
@@ -97,10 +216,11 @@ app.get('/:path/slide/:sid', function(req, res, next) {
       if (err) {
         next(new Error("no such slide"));
       }
-      if (slideJade) {
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end(slideJade);
-      }
+      res.writeHead(200, {
+        'Content-Type': 'text/plain',
+      });
+      res.end(slideJade);
+      res.close
     });
   });
 });
@@ -140,20 +260,6 @@ app.get('/create/:id', function(req, res, next){
       return;
     }
 
-    // old model of storing html files
-    //redis.set(pathname, html, function(err, info) {
-    //  if (err) {
-    //    res.writeHead(500, {'Content-Type': 'text/plain'});
-    //    res.end("Error creating: " + pathname + ' ' + err);
-    //  }
-    //  // then redirect to the new (original) url
-    //  res.writeHead(303, {"Content-Type": 'text/plain',
-    //                "Location": "/"+pathname});
-    //  res.end("redirecting to " + pathname);
-    //});
-    //
-    // then it doesn't, create a default one.
-    // first, find an id
     redis.incr("ids::presentations", function(err, pid) {
       // keep the id in a url->id lookup key
       redis.hset("url2id", pathname, pid, function(err, ok) {
@@ -184,10 +290,17 @@ app.get('/create/:id', function(req, res, next){
 app.get('/:id', function(req, res, next){
   res.writeHead(200, {"Content-Type": 'text/plain'});
   var pathname = req.params.id;
+  var user;
   // figure out if we already have a resource there
   redis.hget('url2id', pathname, function(err, pid) {
     if (pid) {
-      fs.readFile('static/deck.html', function(err, deck) {
+      if( req.isAuthenticated() ) {
+        userDiv = '<a href="/logout?next='+ req.url + '">logout</a> ' + req.getAuthDetails().user.username
+      } else {
+        userDiv = '<a href="/auth/twitter?next='+ req.url + '">login</a>';
+      }
+
+    fs.readFile('static/deck.html', function(err, deck) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         var htmlDeck = deck.toString();
         // we get all of the slides in the presentation
@@ -199,6 +312,7 @@ app.get('/:id', function(req, res, next){
             htmlSlides.push("<div class='slide'>\n" + html + '</div>')
           });
           allSlides = htmlSlides.join('\n');
+          htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv)
           htmlDeck = htmlDeck.replace('${SLIDES}', allSlides)
           res.end(htmlDeck);
         });
@@ -210,7 +324,26 @@ app.get('/:id', function(req, res, next){
   })
 });
   
+// We let the example run without npm, by setting up the require paths
+// so the node-oauth submodule inside of git is used.  You do *NOT*
+// need to bother with this line if you're using npm ...
+require.paths.unshift('support')
+var OAuth= require('oauth').OAuth;
 
+var getSharedSecretForUserFunction = function(user,  callback) {
+  var result;
+  if(user == 'foo') 
+    result= 'bar';
+  callback(null, result);
+};
+
+var validatePasswordFunction = function(username, password, successCallback, failureCallback){
+  if (username === 'foo' && password === "bar"){
+    successCallback();
+  } else {
+    failureCallback();
+  }
+};
 
 app.listen(3000);
 console.log('Express app started on port 3000');

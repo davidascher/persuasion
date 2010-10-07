@@ -13,7 +13,20 @@ body {
   visibility: hidden;
 }
 
-.hup {
+
+#userpanel {
+  position: fixed;
+  right: 150px;
+  top: 3px;
+  background: rgba(50,50,50,.3);
+  padding:  0.4ex 1ex;
+  /*border-radius-bottom-left: 4px;*/
+  /*-webkit-border-radius: 4px;*/
+  border-radius: 0 0 4px 4px;
+  z-index: 1000;
+}
+
+#hup {
   position: fixed;
   left: 200px;
   top: 200px;
@@ -22,6 +35,70 @@ body {
   min-height: 200px;
   min-width: 400px;
   z-index: 1000;
+}
+
+#commentbox {
+  position: fixed;
+  right: 50px;
+  bottom: 0px;
+  border-width: 14px;
+  border-color: rgba(150,250,150,.5);
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  background: rgba(150,150,150,.5);
+  z-index: 100;
+  padding: 1ex 1em;
+  margin: 0;
+}
+
+#commentheadercount {
+  color: black;
+  font-weight: bold;
+  background: yellow;
+  padding: 2px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+
+#commentheadespan {
+  color: darkgrey;
+}
+
+#comments .who {
+  color: darkred;
+  padding-right: 1ex;
+}
+
+#newcommmentbox {
+  position: relative;
+  height: 2em;
+}
+
+#newcomment {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  height: 1.5em;
+  width: 100%;
+}
+
+.comment {
+  padding: 1ex 1em;
+  margin: 0;
+  position: relative;
+}
+
+.comment .dismiss {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.comments > :nth-child(odd) {
+  background: rgba(200,200,200,.8);
+}
+.comments > :nth-child(even) {
+  background: rgba(160,160,160,.8);
 }
 
 .presentation {
@@ -174,6 +251,7 @@ header {
 h1 {
   font-size: 100%;
   display: inline;
+  font-size: 36px;
   font-weight: normal;
   padding: 0;
   margin: 0;
