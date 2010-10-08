@@ -13,12 +13,9 @@
     <div id="commentbox">
       <div id="commentheader"><span id="commentheadercount"></span> <span id="commentheaderspan">comments</span></div>
       <ul id="comments" class="comments">
-        <!--<li id="c1" class="comment"><span class="who">john</span><span class="comment">this is cool</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
-        <!--<li id="c2" class="comment"><span class="who">ahmed</span><span class="comment">this is great</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
-        <!--<li id="c3" class="comment"><span class="who">yusuf</span><span class="comment">this is awesome!</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
       </ul>
       <div id="newcommmentbox">
-        <input id="newcomment" type="text" class="newcomment"
+        <input size="30" id="newcomment" type="text" class="newcomment"
                onkeypress="if (event.keyCode == 13) slideshow.makeComment(document.getElementById('newcomment').value, event)"
                placeholder="enter your thoughts"/>
       </div>
@@ -28,14 +25,7 @@
     </div>
     <div class="presentation">
       <div id="presentation-counter"></div>
-      <div class="slides">
-        <div id="hup" class="hup hidden">
-          <ul>
-            <li><a href="after" onclick="addAfter()">Add a slide after</a></li>
-            <li><button onclick="slideshow.editCurrentSlide()">Edit</button></li>
-            <li>add a slide before</li>
-          </ul>
-        </div>
+      <div id="slides" class="slides">
         ${SLIDES}
       </div> <!-- slides -->
     </div> <!-- presentation -->
@@ -43,5 +33,16 @@
       var COMMENTS = COMMENTS_MARKER;
     </script>
     <script src="/static/deck.js" type="text/javascript"></script>
+    <div id="add_hud" class="hud hidden">
+      <span class="first">First 'a', then:</span>
+      <div id="add_after" class="add_after hud_button">
+        <span class="hud_key">a</span>
+        <span class="hud_legend">add <em>after</em> current slide</span>
+      </div>
+      <div id="add_before" class="add_before hud_button">
+        <span class="hud_key">b</span>
+        <span class="hud_legend">add <em>before</em> current slide</span>
+      </div>
+    </div>
   </body>
 </html>

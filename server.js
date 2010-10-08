@@ -35,7 +35,8 @@ var app = express.createServer(
                         );
 
 
-var redis = require('redis-client').createClient();
+//var redis = require('redis-client').createClient();
+var redis = require('redis').createClient();
 
 app.use(express.favicon());
 app.use(express.logger({format: '":method :url" :status'}))
@@ -208,7 +209,7 @@ app.get('/', function(req, res, params) {
 })
 
 
-app.get('/:path/slide/:sid', function(req, res, next) {
+app.get('/:path/render_slide/:sid', function(req, res, next) {
   var path = req.params.path;
   var sid = req.params.sid;
   redis.hget("url2id", path, function(err, pid) {
@@ -226,24 +227,67 @@ app.get('/:path/slide/:sid', function(req, res, next) {
 });
 
 
+function get_slide_html(path, slideNo) {
+  
+}
 
-app.get('/:path/save/:sid', function(req, res, next) {
+app.get('/:path/slide/:slideNo', function(req, res, next) {
   var path = req.params.path;
-  var sid = req.params.sid;
+  var slideNo = req.params.slideNo;
+  redis.hget("url2id", path, function(err, pid) {
+    if (err) {
+      //console.log("no mapping of " + path + " to url");
+      next(new Error("no such slide"));
+    }
+    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
+      //console.log("presentation:" + pid + " is OK")
+      if (err) {
+        console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
+        next(new Error("no such slide"));
+      }
+      //console.log("slideNo = " + slideNo)
+      redis.get(slideId, function(err, slideJade) {
+        if (err) {
+          //console.log("failure to hget: " + slideId);
+          next(new Error("no such slide"));
+        }
+        res.writeHead(200, {
+          'Content-Type': 'text/plain',
+        });
+        res.end(slideJade);
+      });
+    });
+  });
+});
+
+
+
+app.get('/:path/save/:slideNo', function(req, res, next) {
+  var path = req.params.path;
+  var slideNo = req.params.slideNo;
   var jadeString = req.query['jade'].toString();
   try {
     var converted = jade.render(jadeString);
   } catch (e) {
     console.log(e);
+    // XXX we need to do better =).
   }
-  console.log('html of jade is ' + converted);
+  //console.log('html of jade is ' + converted);
   redis.hget("url2id", path, function(err, pid) {
-    redis.hset("presentation:" + pid, sid, jadeString, function(err, slideJade) {
+    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
+      //console.log("presentation:" + pid + " is OK")
+      slideId = slideId[0]; // we know there's only one.
       if (err) {
+        console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
         next(new Error("no such slide"));
       }
-      res.writeHead(200, {'Content-Type': 'text/html'});
-      res.end(converted);
+      redis.set(slideId, jadeString, function(err, slideJade) {
+        if (err) {
+          next(new Error("no such slide"));
+        }
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        res.end(converted);
+      });
     });
   });
 });
@@ -253,7 +297,6 @@ app.post('/:path/add_comment/:sid', function(req, res) {
   var path = req.params.path;
   var sid = req.params.sid;
   var comment = url.parse(req.url, true).query.comment;
-  console.log("ADDING COMMENT", comment);
   redis.hget("url2id", path, function(err, pid) {
     redis.incr("ids::comments", function(err, cid) {
       redis.rpush("comment:" + pid,
@@ -269,7 +312,50 @@ app.post('/:path/add_comment/:sid', function(req, res) {
       });
     });
   });
-    
+});
+
+app.get('/:path/insert_slide/:pos', function(req, res) {
+  // we need to add a comment to a slide
+  var path = req.params.path;
+  var pos = req.params.pos;
+  redis.hget("url2id", path, function(err, pid) {
+    redis.incr("ids::slides", function(err, sid) {
+      // we now have the id for the slide
+      // let's get the default slide
+      var slideId = "slide:"+sid;
+      fs.readFile('static/defaultSlide.json', function(err, slideJSON) {
+        var slide = JSON.parse(slideJSON);
+        if (err) {
+          console.log("couldn't read defaultSlide.json: " + err);
+        }
+        // we add the slide with it id
+        redis.set(slideId, slide, function(err, ok) {
+          if (err) {
+            console.log("couldn't set slide for id: " + slideId);
+          }
+          // we need to move all of the subsequent slides further,
+          // which means incrementing their scores
+          console.log("looking at slides starting at " + pos);
+          var key ="presentation:" + pid;
+          console.log('key = ' + key);
+          redis.zrangebyscore(key, pos, "inf", function(error, to_incr) {
+            var cmds = [];
+            if (to_incr) {
+              for (var z = 0; z < to_incr.length; z++) {
+                cmds.push(['zincrby', key, 1, to_incr[z]]);
+              }
+            }
+            cmds.push(['zadd', key, pos, slideId]);
+            redis.multi(cmds).exec(function(err, results) {
+              res.writeHead(200, {'Content-Type': 'text/html'});
+              console.log("returning: " + jade.render(slide));
+              res.end(jade.render(slide));
+            });
+          });
+        });
+      });
+    });
+  });
 });
 
 app.get('/create/:id', function(req, res, next){
@@ -286,23 +372,27 @@ app.get('/create/:id', function(req, res, next){
       // keep the id in a url->id lookup key
       redis.hset("url2id", pathname, pid, function(err, ok) {
         fs.readFile('static/defaultSlides.json', function(err, json) {
-          var args = ["presentation:" + pid];
+          var key ="presentation:" + pid;
           var slides = JSON.parse(json);
+          console.log("JSON: " + json + "");
           var num = 0;
-          slides.forEach(function(slide) {
-            args = args.concat([num++, slide]);
-          });
-          // args is presentation:123, 0, first slide contents, 1, second slide contents, ...
-          redis.hmset(args, function(err, info) {
-            if (err) {
-              res.writeHead(500, {'Content-Type': 'text/plain'});
-              res.end("Error creating: " + pathname + ' ' + err);
-            }
-            // then redirect to the new (original) url
-            res.writeHead(303, {"Content-Type": 'text/plain',
-                          "Location": "/"+pathname});
-            res.end("redirecting to " + pathname);
-          });
+          for (var i=0; i < slides.length; i++) {
+            (function() {
+              var j = i;
+              var slide = slides[j];
+              console.log("slideJSON = " + slide);
+              redis.incr("ids::slides", function(err, sid) {
+                console.log('________SET________', "slide:"+sid, slide);
+                redis.set("slide:"+sid, slide, function(err, ok) {
+                  redis.zadd(key, j, "slide:"+sid);
+                });
+              });
+            })();
+          }
+          // then redirect to the new (original) url
+          res.writeHead(303, {"Content-Type": 'text/plain',
+                        "Location": "/"+pathname});
+          res.end("redirecting to " + pathname);
         });
       });
     });
@@ -321,14 +411,12 @@ app.get('/:id', function(req, res, next){
       } else {
         userDiv = '<a href="/auth/twitter?next='+ req.url + '">login</a>';
       }
-
-    fs.readFile('static/deck.html', function(err, deck) {
+      fs.readFile('static/deck.html', function(err, deck) {
         res.writeHead(200, {'Content-Type': 'text/html'});
         var htmlDeck = deck.toString();
         // we get all of the slides in the presentation
         // get the comments on the deck
         redis.lrange("comment:" + pid, 0, -1, function(err, comments) {
-          console.log("comments:", comments);
           var cs = [];
           // XXX this is all very strange.  I'm not sure what the right
           // process would be to effectively move a JS data structure to the
@@ -339,20 +427,31 @@ app.get('/:id', function(req, res, next){
             });
           }
           commentsJSON = JSON.stringify(cs);
-          redis.hvals("presentation:" + pid, function(err, slides) {
-              var htmlSlides = [];
-              slides.forEach(function(slide) {
-                // we convert them from jade to html
-                html = jade.render(slide);
-                htmlSlides.push("<div class='slide'>\n" + html + '</div>')
+          console.log("key = " + "presentation:" + pid);
+          redis.zrangebyscore("presentation:" + pid, "-inf", "+inf", function(err, slides) {
+            console.log("scores = " + slides);
+            var htmlSlides = [];
+            var num = 0;
+            var commands = [];
+            slides.forEach(function(slideId) {
+              commands.push(['get', slideId]);
+            });
+            redis.multi(commands).exec(function(err, results) {
+              results.forEach(function(slide) {
+                console.log("slide = " + slide);
+                var h = jade.render(slide);
+                console.log("jade says: " + h);
+                var html = "<div slide_id='" + num + "' class='slide'>\n" + h + '</div>';
+                console.log("html = " + html );
+                htmlSlides.push(html)
               });
-            allSlides = htmlSlides.join('\n');
-            console.log("PATHNAME = "+ pathname);
-            htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
-            htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
-            htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
-            htmlDeck = htmlDeck.replace('${SLIDES}', allSlides);
-            res.end(htmlDeck);
+              allSlides = htmlSlides.join('\n');
+              htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
+              htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
+              htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
+              htmlDeck = htmlDeck.replace('${SLIDES}', allSlides);
+              res.end(htmlDeck);
+            });
           });
         });
       });

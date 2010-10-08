@@ -1,27 +1,22 @@
-x redis is persistence layer
-x store each slide contents as jade, convert on the fly
+CLEANUP
 
 P1
 - add slide after, before (+,a, +,b)
 - delete slide (- + confirm)
 - change slide master (aka css stylesheet)
-- figure out commenting system & auth (could have impact on data model)
-- comments: each slide should have an (authenticated) comment queue
-- allow inline editing of divs/spans
-- site bar slides down if hover in top?
-- control panel slides up if hover in bottom?
-- setup basic auth with stupid IDs for now
-
-# oauth will require running on public url - not sure how to do dev work w/ that.
-  - authentication:
+- move away from jade, try to do basic inline & offer full html for geeks.
+- actually use authentication:
   - if you login, you can mark a deck private
   - if you make a deck private, you can say who you want to have read/comment access
+  - use username on comment if logged in.
+
+- use client.on("error", function (err) {}); to get rid of extra error logging
 
 
 P2
 - add keyboard shortcut HUD
+- rework keyboard ui for comments.
+- mark comments as "ack" and delete.
 - reorder slides (later, needs real UI)
 - non-stock bespin colors, just for branding
-- UI navigation control panel somehow (see 'hud')
-- figure out a way to indicate what went wrong if jade markup is off.
 

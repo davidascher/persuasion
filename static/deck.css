@@ -26,15 +26,36 @@ body {
   z-index: 1000;
 }
 
-#hup {
+.hud {
   position: fixed;
   left: 200px;
   top: 200px;
-  background: rgba(50,50,50,.3);
-  /*opacity: 0.5;*/
+  border-radius: 20px;
+  border-width: 10px;
+  background: rgba(200,200,200,.7);
   min-height: 200px;
   min-width: 400px;
-  z-index: 1000;
+  z-index: 1200;
+  padding: 1em;
+}
+
+.hud_button {
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+
+.hud .first {
+  display: block;
+  margin-bottom: 2em;
+}
+
+.hud_key {
+  margin: 1em;
+  margin-bottom: 2em;
+  padding: 1ex;
+  background: white;
+  border-radius: 4px;
+  font-size: 20px;
 }
 
 #commentbox {
@@ -76,14 +97,20 @@ body {
 #newcommmentbox {
   position: relative;
   height: 2em;
+  width: 100%;
 }
 
 #newcomment {
   position: absolute;
   left: 5px;
   right: 5px;
+  display: inline-block;
   top: 0;
   height: 1em;
+  font-size: 16px;
+  margin-right: 10px;
+  font-family: Helvetica;
+  padding: 3px;
 }
 
 
@@ -372,16 +399,6 @@ pre select {
   border: 1px solid #c61800;
 }
   
-input {
-  font-size: 16px;
-  margin-right: 10px;
-  font-family: Helvetica;
-  padding: 3px;
-}
-input[type="range"] {
-  width: 100%;
-}
-
 button {
   margin: 20px 10px 0 0;
   font-family: Verdana;

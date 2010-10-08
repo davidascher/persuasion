@@ -264,8 +264,8 @@ var slideshow;
     var _t = this;
     doc.addEventListener('keydown', 
         function(e) { _t.handleKeyDown(e); }, false);
-    doc.addEventListener('keyup', 
-        function(e) { _t.handleKeyUp(e); }, false);
+    //doc.addEventListener('keyup', 
+    //    function(e) { _t.handleKeyUp(e); }, false);
     //doc.addEventListener('keypress', 
     //    function(e) { _t.handleKeyPress(e); }, false);
     doc.addEventListener('mousewheel', 
@@ -296,6 +296,23 @@ var slideshow;
   SlideShow.prototype = {
     editing: false,
     _slides: [],
+    _addSlide: function(el, idx) {
+      this._slides.splice(idx, 0, new Slide(el, idx));
+      //this._fixupTimeline();
+    },
+    _fixupTimeline: function() {
+    try {
+      for (var x = this.current-1; x <= this.current+7; x++) {
+        console.log("x = " + x);
+        if (this._slides[x-4]) {
+          //console.log("setting ", x-4, "to", Slide._states[Math.max(0, x-this.current)])
+          this._slides[x-4].setState(Math.max(0, x-this.current));
+        }
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    },
     _update: function(dontPush) {
       document.querySelector('#presentation-counter').innerText = this.current;
       if (history.pushState) {
@@ -305,11 +322,7 @@ var slideshow;
       } else {
         window.location.hash = 'slide' + this.current;
       }
-      for (var x = this.current-1; x < this.current + 7; x++) {
-        if (this._slides[x-4]) {
-          this._slides[x-4].setState(Math.max(0, x-this.current));
-        }
-      }
+      this._fixupTimeline();
       var comments = [];
       var slideIndex = this.current-1;
       var slideshow = this;
@@ -430,20 +443,94 @@ var slideshow;
         return;
       }
     },
-    handleKeyUp: function(e) {
-      // hard to detect meta key being raised specifically, so we just do
-      // it all the time.  might be good to be smarter. XXX
-      addClass(document.getElementById('hup'), "hidden");
+    _leaveAddMode: function() {
+      $("#add_hud").toggleClass('hidden');
+      this._in_add_hud = false;
     },
+    _enterAddMode: function() {
+      $("#add_hud").toggleClass('hidden');
+      this._in_add_hud = true;
+    },
+    
+    addSlideAtOffset: function(offset) {
+      // ask the server for the html
+      var req = new XMLHttpRequest();
+      var index = this.current + offset;
+      var url = window.location.pathname + '/insert_slide/' + index;
+
+      req.open('GET', url);
+      console.log(this);
+      var curSlideNode = this._slides[this.current-1]._node;
+      console.log(curSlideNode);
+      var slideshow = this;
+      req.onreadystatechange = function (aEvt) {
+        if (req.readyState == 4) {
+          if (req.status == 200) {
+            console.log(req.responseText);
+            // add it to the dom
+            var slide = document.createElement('div');
+            slide.innerHTML = req.responseText
+            //slide.style.background = 'darkblue';
+            if (offset < 0) {
+              console.log("It's in the past!");
+              curSlideNode.parentNode.insertBefore(slide, curSlideNode);
+              slide.setAttribute('class', 'slide past');
+              slideshow._addSlide(slide, index-1);
+              slideshow.prev();
+            } else {
+              console.log("It's in the future!");
+              slide.setAttribute('class', 'slide future');
+              if (curSlideNode.nextSibling) {
+                curSlideNode.parentNode.insertBefore(slide, curSlideNode.nextSibling);
+              } else {
+                curSlideNode.parentNode.appendChild(slide);
+              }
+              slideshow._addSlide(slide, index);
+              slideshow.next();
+            }
+            console.log(slideshow);
+          }
+        }
+      }
+      req.send("");
+    },
+    addSlideAfter: function() {
+      var slideshow = this;
+      this.addSlideAtOffset(0);
+    },
+    
+    addSlideBefore: function() {
+      var slideshow = this;
+      this.addSlideAtOffset(-1);
+    },
+
     handleKeyDown: function(e) {
-      //if (e.metaKey && (! this.editing)) {
-      //  removeClass(document.getElementById('hup'), "hidden");
-      //}
-      if (e.keyCode == 27) {
-        if (this.editing) {
-          this.stopEditingCurrentSlide();
+      // probably want to only do it if we've bubbled to the top or something.
+      if (e.keyCode == 65 && event.target.tagName == "BODY") {
+        if (! this._in_add_hud) {
+          this._enterAddMode();
         } else {
-          this.editCurrentSlide();
+          // we already hit 'a'
+          this.addSlideAfter();
+          this._leaveAddMode();
+        }
+      }
+      if (e.keyCode == 66 && event.target.tagName == "BODY") {
+        if (this._in_add_hud) {
+          // a, b -> add before
+          this.addSlideBefore();
+          this._leaveAddMode();
+        }
+      }
+      if (e.keyCode == 27) {
+        if (this._in_add_hud) {
+          this._leaveAddMode();
+        } else {
+          if (this.editing) {
+            this.stopEditingCurrentSlide();
+          } else {
+            this.editCurrentSlide();
+          }
         }
         e.preventDefault(); 
         e.stopPropagation();
