@@ -167,6 +167,7 @@ var slideshow;
           if (req.status == 200) {
             // we have the html conversion ready to use.
             slide.innerHTML = req.responseText;
+            // somehow re-set-up handlers for editability.
           }
         }
       };
@@ -282,6 +283,7 @@ var slideshow;
         function(e) { if (e.state) { _t.go(e.state); } }, false);
     this.setupComments();
     this._update();
+    this._setupHandlers();
     $("#commentheader").mousedown(function(e) {
       var commentbox = $("#commentbox");
       var height = - commentbox.height() + 20;
@@ -301,16 +303,17 @@ var slideshow;
       //this._fixupTimeline();
     },
     _fixupTimeline: function() {
-    try {
       for (var x = this.current-1; x <= this.current+7; x++) {
         if (this._slides[x-4]) {
           this._slides[x-4].setState(Math.max(0, x-this.current));
         }
       }
-    } catch (e) {
-      console.log(e);
-    }
     },
+    _setupHandlers: function() {
+      // setup all jquery and other handlers we need.
+      $('div.slide *').editable();
+    },
+    
     _update: function(dontPush) {
       document.querySelector('#presentation-counter').innerText = this.current;
       if (history.pushState) {
@@ -384,7 +387,7 @@ var slideshow;
     addComment: function(commentHash) {
       var comments = $('#comments'); // for now treat as one big list
       var comment = $('<li class="comment"><span class="who">' + commentHash.author +
-                      '</span><span class="comment">' + commentHash.comment + '</span></li>');
+                      '</span> said: <span class="comment">' + commentHash.comment + '</span></li>');
       comments.append(comment);
     },
     
@@ -422,6 +425,8 @@ var slideshow;
       toggleClass(document.body, 'three-d');
     },
     handleWheel: function(e) {
+      // trigger happy
+      return;
       var delta = 0;
       if (e.wheelDelta) {
         delta = e.wheelDelta/120;
@@ -449,6 +454,14 @@ var slideshow;
       $("#add_hud").toggleClass('hidden');
       this._in_add_hud = true;
     },
+    _leaveDeleteMode: function() {
+      $("#delete_hud").toggleClass('hidden');
+      this._in_delete_hud = false;
+    },
+    _enterDeleteMode: function() {
+      $("#delete_hud").toggleClass('hidden');
+      this._in_delete_hud = true;
+    },
     
     addSlideAtOffset: function(offset) {
       // ask the server for the html
@@ -457,14 +470,11 @@ var slideshow;
       var url = window.location.pathname + '/insert_slide/' + index;
 
       req.open('GET', url);
-      console.log(this);
       var curSlideNode = this._slides[this.current-1]._node;
-      console.log(curSlideNode);
       var slideshow = this;
       req.onreadystatechange = function (aEvt) {
         if (req.readyState == 4) {
           if (req.status == 200) {
-            console.log(req.responseText);
             // add it to the dom
             var slide = document.createElement('div');
             slide.innerHTML = req.responseText
@@ -486,69 +496,129 @@ var slideshow;
               slideshow._addSlide(slide, index);
               slideshow.next();
             }
-            console.log(slideshow);
           }
         }
       }
       req.send("");
     },
     addSlideAfter: function() {
-      var slideshow = this;
       this.addSlideAtOffset(0);
     },
     
     addSlideBefore: function() {
-      var slideshow = this;
       this.addSlideAtOffset(-1);
+    },
+
+    deleteCurrentSlide: function() {
+      // ask the server for the html
+      var req = new XMLHttpRequest();
+      var index = this.current-1;
+      var url = window.location.pathname + '/slide/' + index;
+
+      req.open('delete', url);
+      var curSlideNode = this._slides[this.current-1]._node;
+      var slideshow = this;
+      req.onreadystatechange = function (aEvt) {
+        if (req.readyState == 4) {
+          if (req.status == 200) {
+            // deletion was successful
+            // remove it from the dom
+            curSlideNode.parentNode.removeChild(curSlideNode);
+            var slides = slideshow._slides;
+            // remove it from the slides array
+            slideshow._slides = slideshow._slides.slice(0,index).concat( slideshow._slides.slice(index+1) );
+            
+            slideshow._update();
+            // make sure we're on the next slide, not the previous one.
+              //slideshow._addSlide(slide, index);
+              //slideshow.current += 1; // indeed!  move to the _addSlide logic?
+              //slideshow.prev();
+            }
+          }
+        }
+      req.send("");
     },
 
     handleKeyDown: function(e) {
       // probably want to only do it if we've bubbled to the top or something.
-      if (e.keyCode == 65 && event.target.tagName == "BODY") {
-        if (! this._in_add_hud) {
-          this._enterAddMode();
-        } else {
-          // we already hit 'a'
-          this.addSlideAfter();
-          this._leaveAddMode();
-        }
-      }
-      if (e.keyCode == 66 && event.target.tagName == "BODY") {
-        if (this._in_add_hud) {
-          // a, b -> add before
-          this.addSlideBefore();
-          this._leaveAddMode();
-        }
-      }
-      if (e.keyCode == 27) {
-        if (this._in_add_hud) {
-          this._leaveAddMode();
-        } else {
-          if (this.editing) {
-            this.stopEditingCurrentSlide();
-          } else {
-            this.editCurrentSlide();
-          }
-        }
+      if (e.keyCode == 27 && this.editing) {
+        this.stopEditingCurrentSlide();
         e.preventDefault(); 
         e.stopPropagation();
+        return;
       }
-      if (e.keyCode == 13 && e.ctrlKey) {
-        this.stopEditingCurrentSlide();
+
+      if (event.target.tagName == "BODY") {
+        switch (e.keyCode) {
+          case 65: // a
+            if (! this._in_add_hud) {
+              this._enterAddMode();
+            } else {
+              // we already hit 'a'
+              this.addSlideAfter();
+              this._leaveAddMode();
+            }
+            break;
+          case 66: // b
+            if (this._in_add_hud) {
+              // a, b -> add before
+              this.addSlideBefore();
+              this._leaveAddMode();
+            }
+            break;
+          case 68: // d
+            if (! this._in_delete_hud) {
+              this._enterDeleteMode();
+            }
+            break;
+          case 89: // y
+            if (this._in_delete_hud) {
+              this.deleteCurrentSlide();
+              this._leaveDeleteMode();
+            }
+            break;
+          case 27: // esc
+            if (this._in_add_hud) {
+              this._leaveAddMode();
+            } else if (this._in_delete_hud) {
+              this._leaveDeleteMode();
+            } else {
+              if (! this.editing) {
+                this.editCurrentSlide();
+              }
+            }
+            e.preventDefault(); 
+            e.stopPropagation();
+            break;
+          case 13: // return
+            if (e.ctrlKey) {
+              this.stopEditingCurrentSlide();
+            }
+            break;
+          case 188: // "<"
+            break;
+          case 190: // ">"
+            break;
+        case 37: // left arrow
+          this.prev();
+          break;
+        case 39: // right arrow
+        case 32: // space
+          this.next();
+          break;
+        case 50: // 2
+          this.showNotes(); // XXX understand better
+          break;
+        case 51: // 3
+          this.switch3D(); // XXX understand better
+          break;
+            
+        }
       }
       
       if (/^(input|textarea)$/i.test(e.target.nodeName)) return;
       
       switch (e.keyCode) {
-        case 37: // left arrow
-          this.prev(); break;
-        case 39: // right arrow
-        case 32: // space
-          this.next(); break;
-        case 50: // 2
-          this.showNotes(); break;
-        case 51: // 3
-          this.switch3D(); break;
       }
     },
     _touchStartX: 0,

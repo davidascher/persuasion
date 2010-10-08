@@ -358,6 +358,30 @@ app.get('/:path/insert_slide/:pos', function(req, res) {
   });
 });
 
+
+app.del('/:path/slide/:slideNo', function(req, res) {
+  // we need to add a comment to a slide
+  var path = req.params.path;
+  var slideNo = req.params.slideNo;
+  console.log("REMOVING SLIDE", path, slideNo)
+  redis.hget("url2id", path, function(err, pid) {
+    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
+      //console.log("presentation:" + pid + " is OK")
+      slideId = slideId[0]; // we know there's only one.
+      if (err) {
+        console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
+        next(new Error("no such slide"));
+      }
+      redis.del(slideId, function(err, slideJade) {
+        redis.zrem(key, slideId, function(err, ok) {
+          res.writeHead(200, {'Content-Type': 'text/plain'});
+          res.end(ok);
+        });
+      });
+    });
+  });
+});
+
 app.get('/create/:id', function(req, res, next){
   var pathname = req.params.id;
   // if we get here, it shouldn't already exist

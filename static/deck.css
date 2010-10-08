@@ -62,6 +62,7 @@ body {
   position: fixed;
   right: 50px;
   bottom: 0px;
+  min-width: 20em;
   border-width: 14px;
   border-color: rgba(150,250,150,.5);
   -moz-border-radius: 4px;
@@ -85,13 +86,19 @@ body {
   border-radius: 3px;
 }
 
+li.comment {
+  color: grey;
+}
+
+span.comment {
+  color: black;
+}
 #commentheadespan {
   color: darkgrey;
 }
 
 #comments .who {
   color: darkred;
-  padding-right: 1ex;
 }
 
 #newcommmentbox {
@@ -255,6 +262,17 @@ body.three-d div.slides {
   -moz-transform: translateX(50px) scale(0.8) rotateY(10deg);
   -o-transform: translateX(50px) scale(0.8) rotateY(10deg);
   transform: translateX(50px) scale(0.8) rotateY(10deg);
+}
+
+.ui-inline input {
+  font-size: inherit;
+  font-family: inherit;
+  text-shadow: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  width: 800px !important;
+  /*margin-left: -4px;*/
+  /*margin-top: -4px;*/
 }
 
 /* Content */

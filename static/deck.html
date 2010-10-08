@@ -5,9 +5,12 @@
     <title>${TITLE}</title>
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans|Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="/static/deck.css" rel="stylesheet" type="text/css" media="screen"/>
+    <link href="/static/jquery-ui-1.7.custom.css" rel="stylesheet" type="text/css" media="screen"/>
     <link id="bespin_base" href="/static/bespin"/>
     <script src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
     <script src="/static/bespin/BespinEmbedded.js"></script>
+    <script src="static/jquery-ui-1.7.custom.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/static/ui.editable.js"></script>
   </head>
   <body>
     <div id="commentbox">
@@ -42,6 +45,17 @@
       <div id="add_before" class="add_before hud_button">
         <span class="hud_key">b</span>
         <span class="hud_legend">add <em>before</em> current slide</span>
+      </div>
+    </div>
+    <div id="delete_hud" class="hud hidden">
+      <span class="first">confirm delete?</span>
+      <div id="delete_yes" class="hud_button">
+        <span class="hud_key">y</span>
+        <span class="hud_legend"><em>yes</em>, delete current slide</span>
+      </div>
+      <div id="delete_cancel" class="add_before hud_button">
+        <span class="hud_key">esc</span>
+        <span class="hud_legend">no, cancel</span>
       </div>
     </div>
   </body>

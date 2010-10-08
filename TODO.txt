@@ -1,15 +1,17 @@
-CLEANUP
-
 P1
-- delete slide (- + confirm)
+- cleanup js code, it's getting ugly
 - change slide master (aka css stylesheet)
 - move away from jade, try to do basic inline & offer full html for geeks.
 
  -- to keep jade, i'd have to detect in the UI which changes to jade need to be
     made to match the UI-direct change.  that will mean either converting html back to jade, or
     mapping UI operations to Jade diffs.
+
+- reorder using > and < -- move slide right & left.
     
 - actually use authentication:
+  - make URLs use username as part of path (establish strong ownership of decks)
+  - allow cloning of decks (and keep track of who cloned in both directions.)
   - if you login, you can mark a deck private
   - if you make a deck private, you can say who you want to have read/comment access
   - use username on comment if logged in.
