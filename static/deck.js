@@ -303,9 +303,7 @@ var slideshow;
     _fixupTimeline: function() {
     try {
       for (var x = this.current-1; x <= this.current+7; x++) {
-        console.log("x = " + x);
         if (this._slides[x-4]) {
-          //console.log("setting ", x-4, "to", Slide._states[Math.max(0, x-this.current)])
           this._slides[x-4].setState(Math.max(0, x-this.current));
         }
       }
@@ -472,13 +470,13 @@ var slideshow;
             slide.innerHTML = req.responseText
             //slide.style.background = 'darkblue';
             if (offset < 0) {
-              console.log("It's in the past!");
+              //slide.style.background = "blue";
               curSlideNode.parentNode.insertBefore(slide, curSlideNode);
               slide.setAttribute('class', 'slide past');
-              slideshow._addSlide(slide, index-1);
+              slideshow._addSlide(slide, index);
+              slideshow.current += 1; // indeed!  move to the _addSlide logic?
               slideshow.prev();
             } else {
-              console.log("It's in the future!");
               slide.setAttribute('class', 'slide future');
               if (curSlideNode.nextSibling) {
                 curSlideNode.parentNode.insertBefore(slide, curSlideNode.nextSibling);

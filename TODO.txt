@@ -1,10 +1,14 @@
 CLEANUP
 
 P1
-- add slide after, before (+,a, +,b)
 - delete slide (- + confirm)
 - change slide master (aka css stylesheet)
 - move away from jade, try to do basic inline & offer full html for geeks.
+
+ -- to keep jade, i'd have to detect in the UI which changes to jade need to be
+    made to match the UI-direct change.  that will mean either converting html back to jade, or
+    mapping UI operations to Jade diffs.
+    
 - actually use authentication:
   - if you login, you can mark a deck private
   - if you make a deck private, you can say who you want to have read/comment access
@@ -17,6 +21,6 @@ P2
 - add keyboard shortcut HUD
 - rework keyboard ui for comments.
 - mark comments as "ack" and delete.
-- reorder slides (later, needs real UI)
+- reorder slides (via zoom out and direct manipulation!)
 - non-stock bespin colors, just for branding
 
