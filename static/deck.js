@@ -280,7 +280,17 @@ var slideshow;
         function(e) { _t.handleTouchEnd(e); }, false);
     window.addEventListener('popstate', 
         function(e) { if (e.state) { _t.go(e.state); } }, false);
-    this._update();          
+    this.setupComments();
+    this._update();
+    $("#commentheader").mousedown(function(e) {
+      var commentbox = $("#commentbox");
+      var height = - commentbox.height() + 20;
+      if (commentbox.css("bottom") != "0px") {
+        commentbox.animate({"bottom": 0}, "fast");
+      } else {
+        commentbox.animate({"bottom": height}, "fast");
+      }
+    });
   };
 
   SlideShow.prototype = {
@@ -300,6 +310,18 @@ var slideshow;
           this._slides[x-4].setState(Math.max(0, x-this.current));
         }
       }
+      var comments = [];
+      var slideIndex = this.current-1;
+      var slideshow = this;
+      this.clearComments();
+      if (slideIndex in this._commentsPerSlide) {
+        comments = this._commentsPerSlide[slideIndex];
+        comments.forEach(function(comment) { slideshow.addComment(comment)});
+      }
+      var commentbox = $("#commentbox");
+      var height = - commentbox.height() + 20;
+      commentbox.css("bottom", height);
+      $("#commentheadercount").text(comments.length);
     },
 
     current: 0,
@@ -326,6 +348,56 @@ var slideshow;
     stopEditingCurrentSlide: function() {
       this._slides[this.current-1].stopEditing();
       this.editing = false;
+    },
+    
+    setupComments: function() {
+      var commentlist = COMMENTS;
+      var show = this;
+      this._commentsPerSlide = {};
+      var comment;
+      commentlist.forEach(function(commentJSON) {
+        // we'll create a data structure mapping slide number to a list of
+        // comments
+        comment = JSON.parse(commentJSON);
+        show.registerComment(comment);
+      });
+    },
+    registerComment: function(comment) {
+      slideMap = this._commentsPerSlide;
+      if (! (comment.slide in slideMap)) {
+        slideMap[comment.slide] = [];
+      }
+      slideMap[comment.slide].push(comment);
+    },
+    
+    addComment: function(commentHash) {
+      var comments = $('#comments'); // for now treat as one big list
+      var comment = $('<li class="comment"><span class="who">' + commentHash.author +
+                      '</span><span class="comment">' + commentHash.comment + '</span></li>');
+      comments.append(comment);
+    },
+    
+    clearComments: function() {
+      $('#comments').html('');
+    },
+    makeComment: function(comment, event) {
+      var req = new XMLHttpRequest();
+      var params = [];
+      params.push(encodeURIComponent("comment") + "=" + encodeURIComponent(comment));
+      var qparams = params.join("&");
+      var url = window.location.pathname + '/add_comment/' + ( this.current - 1)+ '?' + qparams;
+      req.open('POST', url, true);
+      req.send("");
+      var comment = {'comment': comment, 'author': 'you', 'slide': this.current -1}
+      this.addComment(comment);
+      this.registerComment(comment); // XXX we probably need an ID too.
+      var textbox = document.getElementById("newcomment");
+      textbox.value = '';
+      textbox.blur();
+    },
+    
+    dismissComment: function(commentId) {
+      
     },
 
     _notesOn: false,

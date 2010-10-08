@@ -10,19 +10,21 @@
     <script src="/static/bespin/BespinEmbedded.js"></script>
   </head>
   <body>
-    <div id="userpanel">
-      ${USERPANEL}
-    </div>
     <div id="commentbox">
-      <div id="commentheader"><span id="commentheadercount">3</span> <span id="commentheaderspan">comments</span></div>
+      <div id="commentheader"><span id="commentheadercount"></span> <span id="commentheaderspan">comments</span></div>
       <ul id="comments" class="comments">
-        <li id="c1" class="comment"><span class="who">john</span><span class="comment">this is cool</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
-        <li id="c2" class="comment"><span class="who">ahmed</span><span class="comment">this is great</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
-        <li id="c3" class="comment"><span class="who">yusuf</span><span class="comment">this is awesome!</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>
+        <!--<li id="c1" class="comment"><span class="who">john</span><span class="comment">this is cool</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
+        <!--<li id="c2" class="comment"><span class="who">ahmed</span><span class="comment">this is great</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
+        <!--<li id="c3" class="comment"><span class="who">yusuf</span><span class="comment">this is awesome!</span><a onclick="dismissComment('c1')" class="dismiss">[x]</a></li>-->
       </ul>
       <div id="newcommmentbox">
-        <textarea id="newcomment" onclick="alert('got it')" placeholder="enter your thoughts"></textarea>
+        <input id="newcomment" type="text" class="newcomment"
+               onkeypress="if (event.keyCode == 13) slideshow.makeComment(document.getElementById('newcomment').value, event)"
+               placeholder="enter your thoughts"/>
       </div>
+    </div>
+    <div id="userpanel">
+      ${USERPANEL}
     </div>
     <div class="presentation">
       <div id="presentation-counter"></div>
@@ -37,6 +39,9 @@
         ${SLIDES}
       </div> <!-- slides -->
     </div> <!-- presentation -->
+    <script type="text/javascript">
+      var COMMENTS = COMMENTS_MARKER;
+    </script>
     <script src="/static/deck.js" type="text/javascript"></script>
   </body>
 </html>

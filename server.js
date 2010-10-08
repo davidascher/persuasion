@@ -248,7 +248,29 @@ app.get('/:path/save/:sid', function(req, res, next) {
   });
 });
 
-
+app.post('/:path/add_comment/:sid', function(req, res) {
+  // we need to add a comment to a slide
+  var path = req.params.path;
+  var sid = req.params.sid;
+  var comment = url.parse(req.url, true).query.comment;
+  console.log("ADDING COMMENT", comment);
+  redis.hget("url2id", path, function(err, pid) {
+    redis.incr("ids::comments", function(err, cid) {
+      redis.rpush("comment:" + pid,
+                  JSON.stringify({"slide": sid,
+                                  "id": cid,
+                                  "author": "someone", // XXX use auth
+                                  "comment" : comment}), function(err, ok) {
+        if (err) {
+          next(new Error("couldn't write a comment"));
+        }
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end("OK");
+      });
+    });
+  });
+    
+});
 
 app.get('/create/:id', function(req, res, next){
   var pathname = req.params.id;
@@ -304,17 +326,34 @@ app.get('/:id', function(req, res, next){
         res.writeHead(200, {'Content-Type': 'text/html'});
         var htmlDeck = deck.toString();
         // we get all of the slides in the presentation
-        redis.hvals("presentation:" + pid, function(err, slides) {
-          var htmlSlides = [];
-          slides.forEach(function(slide) {
-            // we convert them from jade to html
-            html = jade.render(slide);
-            htmlSlides.push("<div class='slide'>\n" + html + '</div>')
+        // get the comments on the deck
+        redis.lrange("comment:" + pid, 0, -1, function(err, comments) {
+          console.log("comments:", comments);
+          var cs = [];
+          // XXX this is all very strange.  I'm not sure what the right
+          // process would be to effectively move a JS data structure to the
+          // client.
+          if (comments) {
+            comments.forEach(function (c) {
+              cs.push(c.toString());
+            });
+          }
+          commentsJSON = JSON.stringify(cs);
+          redis.hvals("presentation:" + pid, function(err, slides) {
+              var htmlSlides = [];
+              slides.forEach(function(slide) {
+                // we convert them from jade to html
+                html = jade.render(slide);
+                htmlSlides.push("<div class='slide'>\n" + html + '</div>')
+              });
+            allSlides = htmlSlides.join('\n');
+            console.log("PATHNAME = "+ pathname);
+            htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
+            htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
+            htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
+            htmlDeck = htmlDeck.replace('${SLIDES}', allSlides);
+            res.end(htmlDeck);
           });
-          allSlides = htmlSlides.join('\n');
-          htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv)
-          htmlDeck = htmlDeck.replace('${SLIDES}', allSlides)
-          res.end(htmlDeck);
         });
       });
     } else {

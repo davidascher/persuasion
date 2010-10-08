@@ -17,7 +17,7 @@ body {
 #userpanel {
   position: fixed;
   right: 150px;
-  top: 3px;
+  top: 0px;
   background: rgba(50,50,50,.3);
   padding:  0.4ex 1ex;
   /*border-radius-bottom-left: 4px;*/
@@ -51,6 +51,10 @@ body {
   margin: 0;
 }
 
+#commentheader:hover {
+  background: grey url(/static/horizontal.png);
+}
+
 #commentheadercount {
   color: black;
   font-weight: bold;
@@ -78,9 +82,12 @@ body {
   position: absolute;
   left: 5px;
   right: 5px;
-  height: 1.5em;
-  width: 100%;
+  top: 0;
+  height: 1em;
 }
+
+
+
 
 .comment {
   padding: 1ex 1em;
@@ -303,6 +310,10 @@ li {
 
 button {
   font-size: 20px;
+}
+
+#add {
+  font-size: 15px;
 }
 
 pre button {
