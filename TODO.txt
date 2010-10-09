@@ -1,28 +1,56 @@
-P1
-- cleanup js code, it's getting ugly
-- change slide master (aka css stylesheet)
-- move away from jade, try to do basic inline & offer full html for geeks.
+[bugs]
+- before starting to edit, removeClass('ui-editable') from everything
+- after adding a new slide or after editing, enable double-click-to-edit
 
- -- to keep jade, i'd have to detect in the UI which changes to jade need to be
-    made to match the UI-direct change.  that will mean either converting html back to jade, or
-    mapping UI operations to Jade diffs.
+[flickr]
+- persist flickr urls with the slides
+- allow people to find a different picture (either by tag or just chance)
+  and pretty-print the html
+- auto-generate credits page
+- browser for backgrounds (cc-licensed, tags, colors, etc.)
 
+[ux]
+- merge watercooler & notes using bryan's suggestions
+- allow manipulation of divs:
+ - create new divs
+ - delete existing divs
+ - change div class (get rid of h1/h2/header etc/)
+  - allow change slide master (aka picking css stylesheet - each css stylesheet should be
+    prefixed by a slide class:  slide.fancy .header {}, slide.business .header {}
+  - deck should load all CSS (fancy, business, that any of the slides use -- )
+  - master-picker would need to load them all.
 - reorder using > and < -- move slide right & left.
-    
-- actually use authentication:
+- indicate connection/deconnection
+- add keyboard shortcut HUD
+- figure out modes: presenting (i notify you when to move slides), collaborating, read-only
+- distinguish new comments, and ack or delete comments?
+
+[later]
+- figure out something for embedded graphics/sketches
+- allow JS callbacks on enter/leave of a slide
+- allow non-linear decks
+
+[cleanup]
+- test suite
+- cleanup js code, it's getting ugly
+- use client.on("error", function (err) {}); to get rid of extra error logging
+- clean up publish/subscribe stuff - move to redis pubsub, but only for scale?
+
+[social]
   - make URLs use username as part of path (establish strong ownership of decks)
   - allow cloning of decks (and keep track of who cloned in both directions.)
   - if you login, you can mark a deck private
   - if you make a deck private, you can say who you want to have read/comment access
   - use username on comment if logged in.
+  - allow liking of decks
+  - leaderboard for public decks (most views, most likes, most current active readers)
+  - leaderboard for your decks
 
-- use client.on("error", function (err) {}); to get rid of extra error logging
-
-
-P2
-- add keyboard shortcut HUD
-- rework keyboard ui for comments.
-- mark comments as "ack" and delete.
-- reorder slides (via zoom out and direct manipulation!)
+[graphics]
 - non-stock bespin colors, just for branding
+- different default css
+- more than one stylesheet to choose from!
+
+[docs]
+- make initial slide deck a tutorial
 

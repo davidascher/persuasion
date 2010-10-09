@@ -121,6 +121,59 @@ span.comment {
 }
 
 
+#chatbox {
+  position: fixed;
+  left: 50px;
+  bottom: 0px;
+  min-width: 20em;
+  border-width: 14px;
+  border-color: rgba(150,250,150,.5);
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  background: rgba(150,150,150,.5);
+  z-index: 100;
+  padding: 1ex 1em;
+  margin: 0;
+}
+
+#chatheader:hover {
+  background: grey url(/static/horizontal.png);
+}
+
+li.chat {
+  color: grey;
+}
+
+span.chat {
+  color: black;
+}
+#chatheadespan {
+  color: darkgrey;
+}
+
+#chats .who {
+  color: darkred;
+}
+
+#newcommmentbox {
+  position: relative;
+  height: 2em;
+  width: 100%;
+}
+
+#newchat {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  display: inline-block;
+  top: 0;
+  height: 1em;
+  font-size: 16px;
+  margin-right: 10px;
+  font-family: Helvetica;
+  padding: 3px;
+}
+
 
 
 .comment {
@@ -176,6 +229,8 @@ span.comment {
   top: 50%;
   margin-top: -350px;
   background-color: #eee;
+  /*background-repeat: none;*/
+  /*background-size: cover;*/
   background: -webkit-gradient(linear, left bottom, left top, from(#bbd), to(#fff));
   background: -moz-linear-gradient(bottom, #bbd, #fff);
   background: linear-gradient(bottom, #bbd, #fff);

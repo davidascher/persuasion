@@ -1,13 +1,22 @@
 
 var slideshow;
+var webchat;
 
 (function() {
   var doc = document;
   var disableBuilds = true;
-
+  function randomString() {
+    var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+    var string_length = 8;
+    var randomstring = '';
+    for (var i=0; i<string_length; i++) {
+      var rnum = Math.floor(Math.random() * chars.length);
+      randomstring += chars.substring(rnum,rnum+1);
+    }
+    return randomstring;
+  }
   var ctr = 0;
   var spaces = /\s+/, a1 = [''];
-
 
   var toArray = function(list) {
     return Array.prototype.slice.call(list || [], 0);
@@ -54,6 +63,7 @@ var slideshow;
   };
 
   var addClass = function(node, classStr) {
+    console.log(node, classStr);
     classStr = strToArray(classStr);
     var cls = ' ' + node.className + ' ';
     for (var i = 0, len = classStr.length, c; i < len; ++i) {
@@ -129,11 +139,10 @@ var slideshow;
                'past', 'current', 'future',
                'far-future', 'distant-slide' ],
     startEditing: function() {
-      // get the jade "source" of the slide
+      // get the "source" of the slide
       var node = this._node;
       var req = new XMLHttpRequest();
       var url = window.location.pathname + '/slide/' + (this._count - 1);
-
       req.open('GET', url);
       req.onreadystatechange = function (aEvt) {
         if (req.readyState == 4) {
@@ -154,24 +163,10 @@ var slideshow;
       var newcontents = slideshow.env.editor.value;
       var slide = editor.parentNode;
       slide.removeChild(editor);
-
-      var params = [];
-      params.push(encodeURIComponent("jade") + "=" + encodeURIComponent(newcontents));
-      var qparams = params.join("&");
-      var url = window.location.pathname + '/save/' + ( this._count -1 )+ '?' + qparams;
-      var req = new XMLHttpRequest();
-      req.open('GET', url);
-      var node = this._node;
-      req.onreadystatechange = function (aEvt) {
-        if (req.readyState == 4) {
-          if (req.status == 200) {
-            // we have the html conversion ready to use.
-            slide.innerHTML = req.responseText;
-            // somehow re-set-up handlers for editability.
-          }
-        }
-      };
-      req.send("");
+      slideshow._saveCurrentSlide(newcontents, function(contents) {
+        slide.innerHTML = contents;
+        //$('div.slide *').editable();
+      });
     },
     setState: function(state) {
       if (typeof state != 'string') {
@@ -194,6 +189,9 @@ var slideshow;
     },
     _makeCounter: function() {
       if(!this._count || !this._node) { return; }
+      var counters = $(this._node).find('.counter');
+      console.log(counters);
+      if (counters.length) return;
       var c = doc.createElement('span');
       c.innerHTML = this._count;
       c.className = 'counter';
@@ -285,12 +283,10 @@ var slideshow;
     this._update();
     this._setupHandlers();
     $("#commentheader").mousedown(function(e) {
-      var commentbox = $("#commentbox");
-      var height = - commentbox.height() + 20;
-      if (commentbox.css("bottom") != "0px") {
-        commentbox.animate({"bottom": 0}, "fast");
+      if (slideshow._commentsShowing) {
+        slideshow.hideComments();
       } else {
-        commentbox.animate({"bottom": height}, "fast");
+        slideshow.showComments();
       }
     });
   };
@@ -298,6 +294,22 @@ var slideshow;
   SlideShow.prototype = {
     editing: false,
     _slides: [],
+    _commentsShowing: false,
+    showComments: function() {
+      var commentbox = $("#commentbox");
+      var height = - commentbox.height() + 20;
+      commentbox.animate({"bottom": 0}, "fast");
+      $("#newcomment").focus();
+      this._commentsShowing = true;
+    },
+
+    hideComments: function() {
+      var commentbox = $("#commentbox");
+      var height = - commentbox.height() + 20;
+      commentbox.animate({"bottom": height}, "fast");
+      this._commentsShowing = false;
+    },
+    
     _addSlide: function(el, idx) {
       this._slides.splice(idx, 0, new Slide(el, idx));
       //this._fixupTimeline();
@@ -312,6 +324,36 @@ var slideshow;
     _setupHandlers: function() {
       // setup all jquery and other handlers we need.
       $('div.slide *').editable();
+      $("body").bind('editFinish', function(e) {
+        // save current slide again, picking up any changes.
+        var s = slideshow.curSlide;
+        var bits = $(".ui-editable");
+        bits.removeClass('ui-editable');
+        var html = s.innerHTML;
+        html.replace('class=""', '', 'g');
+        slideshow._saveCurrentSlide(s.innerHTML);
+        bits.addClass('ui-editable');
+      });
+    },
+    
+    _saveCurrentSlide: function(newcontents, callback) {
+      var params = [];
+      params.push(encodeURIComponent("slide") + "=" + encodeURIComponent(newcontents));
+      var qparams = params.join("&");
+      var url = window.location.pathname + '/save/' + ( slideshow.current-1 )+ '?' + qparams;
+      var req = new XMLHttpRequest();
+      req.open('GET', url);
+      var node = this._node;
+      req.onreadystatechange = function (aEvt) {
+        if (req.readyState == 4) {
+          if (req.status == 200) {
+            if (callback) {
+              callback(req.responseText);
+            }
+          }
+        }
+      };
+      req.send("");
     },
     
     _update: function(dontPush) {
@@ -404,6 +446,7 @@ var slideshow;
       req.send("");
       var comment = {'comment': comment, 'author': 'you', 'slide': this.current -1}
       this.addComment(comment);
+      $("#commentheadercount").text(Number($("#commentheadercount").text())+1);
       this.registerComment(comment); // XXX we probably need an ID too.
       var textbox = document.getElementById("newcomment");
       textbox.value = '';
@@ -463,6 +506,10 @@ var slideshow;
       this._in_delete_hud = true;
     },
     
+    get curSlide() {
+      return this._slides[this.current-1]._node;
+    },
+    
     addSlideAtOffset: function(offset) {
       // ask the server for the html
       var req = new XMLHttpRequest();
@@ -477,10 +524,9 @@ var slideshow;
           if (req.status == 200) {
             // add it to the dom
             var slide = document.createElement('div');
-            slide.innerHTML = req.responseText
-            //slide.style.background = 'darkblue';
+            slide.innerHTML = req.responseText;
+            //slide.setAttribute('style', 'background-image: url(/random_image/color?' + randomString() + ')');
             if (offset < 0) {
-              //slide.style.background = "blue";
               curSlideNode.parentNode.insertBefore(slide, curSlideNode);
               slide.setAttribute('class', 'slide past');
               slideshow._addSlide(slide, index);
@@ -496,6 +542,7 @@ var slideshow;
               slideshow._addSlide(slide, index);
               slideshow.next();
             }
+            slideshow._setupHandlers();
           }
         }
       }
@@ -541,14 +588,21 @@ var slideshow;
 
     handleKeyDown: function(e) {
       // probably want to only do it if we've bubbled to the top or something.
-      if (e.keyCode == 27 && this.editing) {
-        this.stopEditingCurrentSlide();
-        e.preventDefault(); 
-        e.stopPropagation();
-        return;
+      if (e.keyCode == 27) {
+        if (this.editing) {
+          this.stopEditingCurrentSlide();
+          e.preventDefault(); 
+          e.stopPropagation();
+          return;
+        } else if (this._commentsShowing) {
+          this.hideComments();
+          e.preventDefault(); 
+          e.stopPropagation();
+          return;
+        }
       }
-
-      if (event.target.tagName == "BODY") {
+      var tag = e.target.tagName
+      if ((tag == "BODY") || (tag == "HTML")) {
         switch (e.keyCode) {
           case 65: // a
             if (! this._in_add_hud) {
@@ -565,6 +619,11 @@ var slideshow;
               this.addSlideBefore();
               this._leaveAddMode();
             }
+            break;
+          case 67: // c
+            e.preventDefault();
+            e.stopPropagation();
+            this.showComments();
             break;
           case 68: // d
             if (! this._in_delete_hud) {
@@ -638,4 +697,61 @@ var slideshow;
 
   // Initialize
   slideshow = new SlideShow(query('.slide'));
+  
+  var Webchat = function(chatul) {
+    this._setup(chatul);
+  };
+
+  Webchat.prototype = {
+    _ul: null,
+    _showing: false,
+    _setup: function(ul) {
+      this._ul = ul;
+      var chat = this;
+      chat.hide();
+      $("#chatheader").mousedown(function(e) {
+        if (chat._showing) {
+          chat.hide();
+        } else {
+          chat.show();
+        }
+
+      });
+      this.socket = new io.Socket(null, {port: 3000});
+      this.socket.connect();
+      this.socket.on('message', function(obj){
+        webchat.addMessage(obj.payload);
+      });
+    },
+    hide: function() {
+      var chatbox = $("#chatbox");
+      var height = - chatbox.height() + 20;
+      chatbox.animate({"bottom": height}, "fast");
+      this._showing = false;
+    },
+    show: function() {
+      var chatbox = $("#chatbox");
+      var height = - chatbox.height() + 20;
+      chatbox.animate({"bottom": 0}, "fast");
+      $("#newchat").focus();
+      this._showing = true;
+    },
+    say: function(something) {
+      var textbox = document.getElementById("newchat");
+      textbox.value = '';
+      webchat.socket.send({'author': 'me',
+                          'message': something});
+      webchat.addMessage({'author': 'you',
+                      'message': something});
+    },
+    addMessage: function(line) {
+      var chats = $('#chats'); // for now treat as one big list
+      var chat = $('<li class="chat"><span class="who">' + line.author +
+                      '</span> said: <span class="chat">' + line.message + '</span></li>');
+      chats.append(chat);
+    }
+  };
+  
+  webchat = new Webchat(query('#chats'));
+
 })();

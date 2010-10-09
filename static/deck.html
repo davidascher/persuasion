@@ -11,6 +11,7 @@
     <script src="/static/bespin/BespinEmbedded.js"></script>
     <script src="static/jquery-ui-1.7.custom.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="/static/ui.editable.js"></script>
+    <script src="/static/socket.io.js"></script>
   </head>
   <body>
     <div id="commentbox">
@@ -21,6 +22,16 @@
         <input size="30" id="newcomment" type="text" class="newcomment"
                onkeypress="if (event.keyCode == 13) slideshow.makeComment(document.getElementById('newcomment').value, event)"
                placeholder="enter your thoughts"/>
+      </div>
+    </div>
+    <div id="chatbox">
+      <div id="chatheader"><span id="chatheaderspan">watercooler</span></div>
+      <ul id="chats" class="chats">
+      </ul>
+      <div id="newcommmentbox">
+        <input size="30" id="newchat" type="text" class="newchat"
+               onkeypress="if (event.keyCode == 13) webchat.say(document.getElementById('newchat').value, event)"
+               placeholder="say what?"/>
       </div>
     </div>
     <div id="userpanel">

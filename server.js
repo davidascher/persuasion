@@ -8,7 +8,10 @@ var express = require('express'),
     jade = require('jade');
     connect = require('connect'), 
     MemoryStore = require('connect/middleware/session/memory'),
-    auth = require('./lib/auth');
+    auth = require('./lib/auth'),
+    io = require('./lib/socket.io/index'),
+    FlickrAPI = require('./lib/flickr/flickr').FlickrAPI;
+
 
 // N.B. TO USE Any of the OAuth or RPX strategies you will need to provide
 // a copy of the example_keys_file (named keys_file) 
@@ -22,6 +25,8 @@ catch(e) {
   console.log('Unable to locate the keys_file.js file.  Please copy and ammend the example_keys_file.js as appropriate');
   sys.exit();
 }
+
+flickr= new FlickrAPI(flickrKey);
 
 var app = express.createServer(
                         connect.cookieDecoder(), 
@@ -116,14 +121,18 @@ app.get('/static/(*.*)', function(req, res, next){
 // -- AUTH (from connect-auth/examples/app.js)
 app.get ('/auth/twitter', function(req, res, params) {
 console.log('in /auth/twitter');
-  var next = url.parse(req.url, true).query.next;
-  if (next) {
-    req.sessionStore.set('persuasion', {'next': next});
+  var q = url.parse(req.url, true).query;
+  var next = null;
+  if (q) {
+    next = q.next;
+    if (next) {
+      req.sessionStore.set('persuasion', {'next': next});
+    }
   }
   req.authenticate(['twitter'], function(error, authenticated) { 
     if( authenticated ) {
       var next = req.sessionStore.get('persuasion', function(err, data, meta) {
-        res.writeHead(303, {"Location": data['next']});
+        res.writeHead(303, {"Location": next ? data['next'] : '/'});
         res.end();
       });
     }
@@ -155,8 +164,11 @@ app.get('/auth/anon', function(req, res, params) {
 
 app.get ('/logout', function(req, res, params) {
   req.logout();
-  var next = url.parse(req.url, true).query.next;
-  res.writeHead(303, { 'Location': next });
+  var next = null
+  var q = url.parse(req.url, true).query;
+  if (q)
+    next = q.next;
+  res.writeHead(303, { 'Location': next ? next : '/'});
   res.end('');
 })
 
@@ -209,28 +221,6 @@ app.get('/', function(req, res, params) {
 })
 
 
-app.get('/:path/render_slide/:sid', function(req, res, next) {
-  var path = req.params.path;
-  var sid = req.params.sid;
-  redis.hget("url2id", path, function(err, pid) {
-    redis.hget("presentation:" + pid, sid, function(err, slideJade) {
-      if (err) {
-        next(new Error("no such slide"));
-      }
-      res.writeHead(200, {
-        'Content-Type': 'text/plain',
-      });
-      res.end(slideJade);
-      res.close
-    });
-  });
-});
-
-
-function get_slide_html(path, slideNo) {
-  
-}
-
 app.get('/:path/slide/:slideNo', function(req, res, next) {
   var path = req.params.path;
   var slideNo = req.params.slideNo;
@@ -246,7 +236,7 @@ app.get('/:path/slide/:slideNo', function(req, res, next) {
         next(new Error("no such slide"));
       }
       //console.log("slideNo = " + slideNo)
-      redis.get(slideId, function(err, slideJade) {
+      redis.get(slideId, function(err, slide) {
         if (err) {
           //console.log("failure to hget: " + slideId);
           next(new Error("no such slide"));
@@ -254,7 +244,7 @@ app.get('/:path/slide/:slideNo', function(req, res, next) {
         res.writeHead(200, {
           'Content-Type': 'text/plain',
         });
-        res.end(slideJade);
+        res.end(slide);
       });
     });
   });
@@ -265,28 +255,27 @@ app.get('/:path/slide/:slideNo', function(req, res, next) {
 app.get('/:path/save/:slideNo', function(req, res, next) {
   var path = req.params.path;
   var slideNo = req.params.slideNo;
-  var jadeString = req.query['jade'].toString();
-  try {
-    var converted = jade.render(jadeString);
-  } catch (e) {
-    console.log(e);
-    // XXX we need to do better =).
-  }
-  //console.log('html of jade is ' + converted);
+  console.log("url = " + req.url);
+  console.log("slideNo = " + slideNo);
+  var slide = req.query['slide'].toString();
   redis.hget("url2id", path, function(err, pid) {
     redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
       //console.log("presentation:" + pid + " is OK")
+      if (!slideId) {
+        console.log("uh oh, couldn' find slide:", slideNo);
+        next(new Error("no such slide"));
+      }
       slideId = slideId[0]; // we know there's only one.
       if (err) {
         console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
         next(new Error("no such slide"));
       }
-      redis.set(slideId, jadeString, function(err, slideJade) {
+      redis.set(slideId, slide, function(err, slideJade) {
         if (err) {
           next(new Error("no such slide"));
         }
         res.writeHead(200, {'Content-Type': 'text/html'});
-        res.end(converted);
+        res.end(slide);
       });
     });
   });
@@ -348,8 +337,7 @@ app.get('/:path/insert_slide/:pos', function(req, res) {
             cmds.push(['zadd', key, pos, slideId]);
             redis.multi(cmds).exec(function(err, results) {
               res.writeHead(200, {'Content-Type': 'text/html'});
-              console.log("returning: " + jade.render(slide));
-              res.end(jade.render(slide));
+              res.end(slide);
             });
           });
         });
@@ -367,6 +355,9 @@ app.del('/:path/slide/:slideNo', function(req, res) {
   redis.hget("url2id", path, function(err, pid) {
     redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
       //console.log("presentation:" + pid + " is OK")
+      if (! slideId) {
+        next(new Error("no such slide"));
+      }
       slideId = slideId[0]; // we know there's only one.
       if (err) {
         console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
@@ -395,7 +386,7 @@ app.get('/create/:id', function(req, res, next){
     redis.incr("ids::presentations", function(err, pid) {
       // keep the id in a url->id lookup key
       redis.hset("url2id", pathname, pid, function(err, ok) {
-        fs.readFile('static/defaultSlides.json', function(err, json) {
+        fs.readFile('static/defaultDeck.json', function(err, json) {
           var key ="presentation:" + pid;
           var slides = JSON.parse(json);
           console.log("JSON: " + json + "");
@@ -422,6 +413,41 @@ app.get('/create/:id', function(req, res, next){
     });
   });
 });
+
+
+function choose (set) {
+  return set[Math.floor(Math.random() * set.length)];
+}
+
+app.get('/random_image/:word', function(req, res) {
+  // Search for photos with a tag of 'badgers'
+  flickr.photos.search({'tags': req.params.word,
+                        'sort': 'interestingness-desc',
+                        //'is_commons': 'true',
+                        'per_page': 100},  function(error, results) {
+    var photos = results.photo;
+    var photo = null;
+    var count = 0;
+    if (photos.length) {
+      while (!photo && count < 100) {
+        // XXX sometimes we get undefined returned photos?
+        photo = choose(photos);
+        count++;
+      }
+      farm = photo.farm;
+      secret = photo.secret;
+      id = photo.id;
+      server = photo.server;
+      url = "http://farm" + farm + ".static.flickr.com/" + server + "/" + id + "_" + secret +".jpg";
+      res.writeHead(303, {'Location': url}); //'Content-Type': 'text/html'});
+      res.end();
+    } else {
+      res.writeHead(404, {'Content-Type': 'text/plain'});
+      res.end("no such photo!");
+    }
+  });
+});
+
 
 app.get('/:id', function(req, res, next){
   res.writeHead(200, {"Content-Type": 'text/plain'});
@@ -463,9 +489,9 @@ app.get('/:id', function(req, res, next){
             redis.multi(commands).exec(function(err, results) {
               results.forEach(function(slide) {
                 console.log("slide = " + slide);
-                var h = jade.render(slide);
-                console.log("jade says: " + h);
-                var html = "<div slide_id='" + num + "' class='slide'>\n" + h + '</div>';
+                //var h = jade.render(slide);
+                //console.log("jade says: " + h);
+                var html = "<div slide_id='" + num + "' class='slide'>\n" + slide + '</div>';
                 console.log("html = " + html );
                 htmlSlides.push(html)
               });
@@ -485,7 +511,7 @@ app.get('/:id', function(req, res, next){
     }
   })
 });
-  
+
 // We let the example run without npm, by setting up the require paths
 // so the node-oauth submodule inside of git is used.  You do *NOT*
 // need to bother with this line if you're using npm ...
@@ -506,6 +532,22 @@ var validatePasswordFunction = function(username, password, successCallback, fai
     failureCallback();
   }
 };
-
+// socket.io, I choose you
+var socket = io.listen(app);
+socket.on('connection', function(client){
+  // new client is here!
+  client.on('message', function(e){
+    console.log("got a message!", e);
+    client.broadcast({"type": "message",
+                "payload": e});
+  });
+  client.on('connect', function(e){
+    console.log("got a connect!", e);
+  });
+  client.on('disconnect', function(){
+    console.log("got a disconnect")
+  });
+});
 app.listen(3000);
+
 console.log('Express app started on port 3000');

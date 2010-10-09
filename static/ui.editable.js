@@ -5,7 +5,10 @@ $.widget('ui.editable', {
 		this.element.addClass('ui-editable');
 		this.element.bind(this.options.eventStart, function(e) {
 				var target = e.target;
-				if (target.tagName == 'INPUT') return false;
+				console.log(target);
+				if (target.tagName == 'INPUT') {
+								return false;
+				}
 				if (target.childNodes.length == 1 && target.firstChild.nodeType != 3) {
 								return false;
 				}
@@ -19,8 +22,7 @@ $.widget('ui.editable', {
 		var elem = this.element;
 		if( !elem.data('editing') ) {
 			elem.data('editing', true);
-			console.log("before, html = ", elem.html());
-			$input = $('<input />').val( $(elem).text() ).width( $(elem).width() );
+			$input = $('<input class="editable"/>').val( $(elem).text() ).width( $(elem).width() );
 			$span = $('<span class="ui-inline" title="' + $(elem).text() + '" />').append($input)
 			$(elem).html( $span );
 			if( this.options.autoFocus ) $input.focus();
