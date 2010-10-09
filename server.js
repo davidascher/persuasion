@@ -1,5 +1,8 @@
 // server.js
 
+// move all redis error handling to a specific handler, as we expect them _never_.
+// implement appropriate auth checking everywhere (commenting, reading, saving, etc.)
+
 var express = require('express'),
     sys = require('sys'),
     fs = require('fs'),
@@ -9,8 +12,10 @@ var express = require('express'),
     connect = require('connect'), 
     MemoryStore = require('connect/middleware/session/memory'),
     auth = require('./lib/auth'),
+    OAuth = require('oauth').OAuth,
     io = require('./lib/socket.io/index'),
-    FlickrAPI = require('./lib/flickr/flickr').FlickrAPI;
+    FlickrAPI = require('./lib/flickr/flickr').FlickrAPI,
+    app = require('./app');
 
 
 // N.B. TO USE Any of the OAuth or RPX strategies you will need to provide
@@ -26,7 +31,7 @@ catch(e) {
   sys.exit();
 }
 
-flickr= new FlickrAPI(flickrKey);
+flickr = new FlickrAPI(flickrKey);
 
 var app = express.createServer(
                         connect.cookieDecoder(), 
@@ -43,18 +48,23 @@ var app = express.createServer(
 //var redis = require('redis-client').createClient();
 var redis = require('redis').createClient();
 
-app.use(express.favicon());
+var STATIC_DIR = path.join(process.cwd(), 'static');
+
+app.use(express.favicon());  // XXX come up with our own favicon
 app.use(express.logger({format: '":method :url" :status'}))
 app.use(app.router);
 
+// XXX understand
 app.use(function(req, res, next) {
   next(new NotFound(req.url));
 });
 
+// XXX understand
 app.set('views', __dirname + '/views');
 
 // Provide our app with the notion of NotFound exceptions
 
+// XXX understand
 function NotFound(path){
     this.name = 'NotFound';
     if (path) {
@@ -91,6 +101,7 @@ app.error(function(err, req, res, next){
 
 // Here we assume all errors as 500 for the simplicity of
 // this demo, however you can choose whatever you like
+// XXX understand
 
 app.error(function(err, req, res){
     res.render('500.jade', {
@@ -102,47 +113,42 @@ app.error(function(err, req, res){
 });
 
 // Routes
-
-app.get('/404', function(req, res){
-    throw new NotFound;
-});
-
-app.get('/500', function(req, res, next){
-    next(new Error('keyboard cat!'));
-});
-
-app.get('/static/(*.*)', function(req, res, next){
-  // XXX clean up regex
-  var pathname = req.params[0]+'.'+req.params[1];
-  var filename = path.join(process.cwd(), 'static', pathname);
+// XXX add test
+app.get('/static/(*)$', function(req, res, next){
+  // XXX understand regex rules better (can I name that regex?)
+  var pathname = req.params[0];
+  var filename = path.join(STATIC_DIR, pathname);
   res.sendfile(filename);
 });
 
 // -- AUTH (from connect-auth/examples/app.js)
+// XXX add test
 app.get ('/auth/twitter', function(req, res, params) {
-console.log('in /auth/twitter');
+  // next is a query parameter which indicates where to redirect to.
   var q = url.parse(req.url, true).query;
-  var next = null;
-  if (q) {
+  var next = '/';
+  if (q && q.next) {
     next = q.next;
-    if (next) {
-      req.sessionStore.set('persuasion', {'next': next});
-    }
+    // we'll store in the session, so that we can handle it when we get
+    // redirected back from twitter.
+    req.sessionStore.set('persuasion', {'next': next});
   }
   req.authenticate(['twitter'], function(error, authenticated) { 
-    if( authenticated ) {
+    if (authenticated) {
       var next = req.sessionStore.get('persuasion', function(err, data, meta) {
-        res.writeHead(303, {"Location": next ? data['next'] : '/'});
+        res.writeHead(303, {"Location": (data && data['next']) ? data['next'] : '/'});
         res.end();
       });
-    }
-    else {
+    } else {
+      console.log("failed to authenticate", error);
       res.writeHead(200, {'Content-Type': 'text/html'})
       res.end("<html><h1>Twitter authentication failed :( </h1></html>")
     }
   });
 })
 
+// XXX test.
+// XXX add test
 app.get ('/auth/facebook', function(req, res, params) {
   req.authenticate(['facebook'], function(error, authenticated) {
     res.writeHead(200, {'Content-Type': 'text/html'})
@@ -155,6 +161,7 @@ app.get ('/auth/facebook', function(req, res, params) {
   });
 })
 
+// XXX understand
 app.get('/auth/anon', function(req, res, params) {
   req.authenticate(['anon'], function(error, authenticated) { 
     res.writeHead(200, {'Content-Type': 'text/html'})
@@ -162,6 +169,7 @@ app.get('/auth/anon', function(req, res, params) {
   });
 })
 
+// XXX add test
 app.get ('/logout', function(req, res, params) {
   req.logout();
   var next = null
@@ -172,14 +180,11 @@ app.get ('/logout', function(req, res, params) {
   res.end('');
 })
 
+// XXX add test
 app.get('/', function(req, res, params) {
-  var self=this;
-  //console.log("req.params", req.params);
-  //console.log("params", params);
-  //console.log("req.query", req.query);
-  //console.log("req.query", JSON.stringify(req.query));
   res.writeHead(200, {'Content-Type': 'text/html'})
   if( !req.isAuthenticated() ) {
+    // XXX move to jade template
     res.end('<html>                                              \n\
         <head>                                             \n\
           <title>connect Auth -- Not Authenticated</title> \n\
@@ -205,6 +210,7 @@ app.get('/', function(req, res, params) {
       </html>')
   }
   else {
+    // XXX move to jade template
     res.end('<html>                                              \n\
         <head>                                             \n\
           <title>Express Auth -- Authenticated</title>\n\
@@ -220,30 +226,20 @@ app.get('/', function(req, res, params) {
   }
 })
 
-
+// XXX add test
 app.get('/:path/slide/:slideNo', function(req, res, next) {
   var path = req.params.path;
   var slideNo = req.params.slideNo;
   redis.hget("url2id", path, function(err, pid) {
-    if (err) {
-      //console.log("no mapping of " + path + " to url");
-      next(new Error("no such slide"));
-    }
+    if (err) { next(new Error("no such slide")); }
     redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
-      //console.log("presentation:" + pid + " is OK")
       if (err) {
         console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
         next(new Error("no such slide"));
       }
-      //console.log("slideNo = " + slideNo)
       redis.get(slideId, function(err, slide) {
-        if (err) {
-          //console.log("failure to hget: " + slideId);
-          next(new Error("no such slide"));
-        }
-        res.writeHead(200, {
-          'Content-Type': 'text/plain',
-        });
+        if (err) { next(new Error("no such slide")); }
+        res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end(slide);
       });
     });
@@ -251,25 +247,20 @@ app.get('/:path/slide/:slideNo', function(req, res, next) {
 });
 
 
-
+// XXX add test
 app.get('/:path/save/:slideNo', function(req, res, next) {
   var path = req.params.path;
   var slideNo = req.params.slideNo;
-  console.log("url = " + req.url);
-  console.log("slideNo = " + slideNo);
-  var slide = req.query['slide'].toString();
+  var slide = req.query.slide;
   redis.hget("url2id", path, function(err, pid) {
-    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
-      //console.log("presentation:" + pid + " is OK")
-      if (!slideId) {
+    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slides) {
+      if (err) { next(new Error(err)); }
+      if (! slides) {
         console.log("uh oh, couldn' find slide:", slideNo);
-        next(new Error("no such slide"));
+        next(new Error("no such slide")); // understand next here.
       }
-      slideId = slideId[0]; // we know there's only one.
-      if (err) {
-        console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
-        next(new Error("no such slide"));
-      }
+      assert.equal(slides.length, 1); // we know there's only one by design of the zset.
+      slideId = slides[0]; 
       redis.set(slideId, slide, function(err, slideJade) {
         if (err) {
           next(new Error("no such slide"));
@@ -281,8 +272,10 @@ app.get('/:path/save/:slideNo', function(req, res, next) {
   });
 });
 
+// XXX add test
+// consider whether data structure is right given new UX goals
+// XXX use auth
 app.post('/:path/add_comment/:sid', function(req, res) {
-  // we need to add a comment to a slide
   var path = req.params.path;
   var sid = req.params.sid;
   var comment = url.parse(req.url, true).query.comment;
@@ -291,7 +284,7 @@ app.post('/:path/add_comment/:sid', function(req, res) {
       redis.rpush("comment:" + pid,
                   JSON.stringify({"slide": sid,
                                   "id": cid,
-                                  "author": "someone", // XXX use auth
+                                  "author": "someone", 
                                   "comment" : comment}), function(err, ok) {
         if (err) {
           next(new Error("couldn't write a comment"));
@@ -303,6 +296,8 @@ app.post('/:path/add_comment/:sid', function(req, res) {
   });
 });
 
+// XXX add test
+// XXX use POST instead
 app.get('/:path/insert_slide/:pos', function(req, res) {
   // we need to add a comment to a slide
   var path = req.params.path;
@@ -314,24 +309,18 @@ app.get('/:path/insert_slide/:pos', function(req, res) {
       var slideId = "slide:"+sid;
       fs.readFile('static/defaultSlide.json', function(err, slideJSON) {
         var slide = JSON.parse(slideJSON);
-        if (err) {
-          console.log("couldn't read defaultSlide.json: " + err);
-        }
+        if (err) throw new Error("couldn't read defaultSlide.json");
         // we add the slide with it id
         redis.set(slideId, slide, function(err, ok) {
-          if (err) {
-            console.log("couldn't set slide for id: " + slideId);
-          }
+          if (err) throw new Error("couldn't set slide for id: " + slideId);
           // we need to move all of the subsequent slides further,
           // which means incrementing their scores
-          console.log("looking at slides starting at " + pos);
           var key ="presentation:" + pid;
-          console.log('key = ' + key);
-          redis.zrangebyscore(key, pos, "inf", function(error, to_incr) {
+          redis.zrangebyscore(key, pos, "inf", function(error, keys_to_incr) {
             var cmds = [];
-            if (to_incr) {
-              for (var z = 0; z < to_incr.length; z++) {
-                cmds.push(['zincrby', key, 1, to_incr[z]]);
+            if (keys_to_incr) {
+              for (var z = 0; z < keys_to_incr.length; z++) {
+                cmds.push(['zincrby', key, 1, keys_to_incr[z]]);
               }
             }
             cmds.push(['zadd', key, pos, slideId]);
@@ -347,22 +336,21 @@ app.get('/:path/insert_slide/:pos', function(req, res) {
 });
 
 
+// XXX add test
 app.del('/:path/slide/:slideNo', function(req, res) {
   // we need to add a comment to a slide
   var path = req.params.path;
   var slideNo = req.params.slideNo;
-  console.log("REMOVING SLIDE", path, slideNo)
   redis.hget("url2id", path, function(err, pid) {
-    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slideId) {
-      //console.log("presentation:" + pid + " is OK")
-      if (! slideId) {
-        next(new Error("no such slide"));
-      }
-      slideId = slideId[0]; // we know there's only one.
+    redis.zrangebyscore("presentation:" + pid, slideNo, slideNo, function(err, slides) {
       if (err) {
         console.log("no slide Id for presentation " + pid + "with slide # " + slideNo);
         next(new Error("no such slide"));
       }
+      if (! slides) {
+        next(new Error("no such slide"));
+      }
+      var slideId = slides[0]; // we know there's only one.
       redis.del(slideId, function(err, slideJade) {
         redis.zrem(key, slideId, function(err, ok) {
           res.writeHead(200, {'Content-Type': 'text/plain'});
@@ -373,6 +361,7 @@ app.del('/:path/slide/:slideNo', function(req, res) {
   });
 });
 
+// XXX add test
 app.get('/create/:id', function(req, res, next){
   var pathname = req.params.id;
   // if we get here, it shouldn't already exist
@@ -389,15 +378,13 @@ app.get('/create/:id', function(req, res, next){
         fs.readFile('static/defaultDeck.json', function(err, json) {
           var key ="presentation:" + pid;
           var slides = JSON.parse(json);
-          console.log("JSON: " + json + "");
           var num = 0;
           for (var i=0; i < slides.length; i++) {
+            // XXX cleanup
             (function() {
               var j = i;
               var slide = slides[j];
-              console.log("slideJSON = " + slide);
               redis.incr("ids::slides", function(err, sid) {
-                console.log('________SET________', "slide:"+sid, slide);
                 redis.set("slide:"+sid, slide, function(err, ok) {
                   redis.zadd(key, j, "slide:"+sid);
                 });
@@ -406,7 +393,7 @@ app.get('/create/:id', function(req, res, next){
           }
           // then redirect to the new (original) url
           res.writeHead(303, {"Content-Type": 'text/plain',
-                        "Location": "/"+pathname});
+                              "Location": "/"+pathname});
           res.end("redirecting to " + pathname);
         });
       });
@@ -439,7 +426,7 @@ app.get('/random_image/:word', function(req, res) {
       id = photo.id;
       server = photo.server;
       url = "http://farm" + farm + ".static.flickr.com/" + server + "/" + id + "_" + secret +".jpg";
-      res.writeHead(303, {'Location': url}); //'Content-Type': 'text/html'});
+      res.writeHead(303, {'Location': url});
       res.end();
     } else {
       res.writeHead(404, {'Content-Type': 'text/plain'});
@@ -448,7 +435,7 @@ app.get('/random_image/:word', function(req, res) {
   });
 });
 
-
+// XXX add test
 app.get('/:id', function(req, res, next){
   res.writeHead(200, {"Content-Type": 'text/plain'});
   var pathname = req.params.id;
@@ -456,7 +443,7 @@ app.get('/:id', function(req, res, next){
   // figure out if we already have a resource there
   redis.hget('url2id', pathname, function(err, pid) {
     if (pid) {
-      if( req.isAuthenticated() ) {
+      if (req.isAuthenticated()) {
         userDiv = '<a href="/logout?next='+ req.url + '">logout</a> ' + req.getAuthDetails().user.username
       } else {
         userDiv = '<a href="/auth/twitter?next='+ req.url + '">login</a>';
@@ -477,9 +464,7 @@ app.get('/:id', function(req, res, next){
             });
           }
           commentsJSON = JSON.stringify(cs);
-          console.log("key = " + "presentation:" + pid);
           redis.zrangebyscore("presentation:" + pid, "-inf", "+inf", function(err, slides) {
-            console.log("scores = " + slides);
             var htmlSlides = [];
             var num = 0;
             var commands = [];
@@ -487,15 +472,13 @@ app.get('/:id', function(req, res, next){
               commands.push(['get', slideId]);
             });
             redis.multi(commands).exec(function(err, results) {
-              results.forEach(function(slide) {
-                console.log("slide = " + slide);
-                //var h = jade.render(slide);
-                //console.log("jade says: " + h);
-                var html = "<div slide_id='" + num + "' class='slide'>\n" + slide + '</div>';
-                console.log("html = " + html );
+              for (var num = 0; num < results.length; num++) {
+                slide = results[num];
+                var html = "<div slideNo='" + num + "' class='slide'>\n" + slide + '</div>';
                 htmlSlides.push(html)
-              });
+              }
               allSlides = htmlSlides.join('\n');
+              // XXX this is hacky, find some real templating system.
               htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
               htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
               htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
@@ -512,42 +495,23 @@ app.get('/:id', function(req, res, next){
   })
 });
 
-// We let the example run without npm, by setting up the require paths
-// so the node-oauth submodule inside of git is used.  You do *NOT*
-// need to bother with this line if you're using npm ...
-require.paths.unshift('support')
-var OAuth= require('oauth').OAuth;
-
-var getSharedSecretForUserFunction = function(user,  callback) {
-  var result;
-  if(user == 'foo') 
-    result= 'bar';
-  callback(null, result);
-};
-
-var validatePasswordFunction = function(username, password, successCallback, failureCallback){
-  if (username === 'foo' && password === "bar"){
-    successCallback();
-  } else {
-    failureCallback();
-  }
-};
-// socket.io, I choose you
+// XXX add tests
 var socket = io.listen(app);
 socket.on('connection', function(client){
   // new client is here!
   client.on('message', function(e){
-    console.log("got a message!", e);
+    //console.log("got a message!", e);
     client.broadcast({"type": "message",
                 "payload": e});
   });
   client.on('connect', function(e){
-    console.log("got a connect!", e);
+    //console.log("got a connect!", e);
   });
   client.on('disconnect', function(){
-    console.log("got a disconnect")
+    //console.log("got a disconnect")
   });
 });
+
 app.listen(3000);
 
-console.log('Express app started on port 3000');
+console.log('Persuasion started on port 3000');
