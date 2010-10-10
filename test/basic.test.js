@@ -2,30 +2,25 @@
  * Module dependencies.
  */
 
-var express = require('express'),
-    Buffer = require('buffer').Buffer;
+// should somehow tell redis to pick a database that we've cleared first.
+var app = require('../app');
+
 
 module.exports = {
     'test basic server': function(assert){
-        var server = express.createServer();
-
-        server.get('/', function(req, res){
-            //assert.equal('test', server.set('env'), 'env setting was not set properly');
-            res.writeHead(200, {});
-            res.end('wahoo');
-        });
-
-        server.put('/user/:id', function(req, res){
-            res.writeHead(200, {});
-            res.end('updated user ' + req.params.id)
-        });
-
-        assert.response(server,
+        assert.response(app.app,
             { url: '/' },
-            { body: 'wahoo' });
-        
-        assert.response(server,
-            { url: '/user/12', method: 'PUT' },
-            { body: 'updated user 12' });
+            function(res){
+                assert.ok(res.body.indexOf('Not Authenticated') >= 0, 'Test assert.response() callback');
+            });
+        assert.response(app.app,
+            { url: '/newslide' },
+            { status: 200 },
+            function(res){
+                console.log("BODY", res.body);
+                assert.ok(res.body.indexOf('does not exist') >= 0, 'Test assert.response() callback');
+                app.redis.end(); // last test.
+            });
+
     },
-    };
+};

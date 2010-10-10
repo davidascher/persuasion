@@ -63,7 +63,6 @@ var webchat;
   };
 
   var addClass = function(node, classStr) {
-    console.log(node, classStr);
     classStr = strToArray(classStr);
     var cls = ' ' + node.className + ' ';
     for (var i = 0, len = classStr.length, c; i < len; ++i) {
@@ -190,7 +189,6 @@ var webchat;
     _makeCounter: function() {
       if(!this._count || !this._node) { return; }
       var counters = $(this._node).find('.counter');
-      console.log(counters);
       if (counters.length) return;
       var c = doc.createElement('span');
       c.innerHTML = this._count;
