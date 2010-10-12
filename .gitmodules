@@ -1,3 +1,18 @@
 [submodule "support/expresso"]
 	path = support/expresso
 	url = http://github.com/visionmedia/expresso.git
+[submodule "support/Socket.IO-node"]
+	path = support/Socket.IO-node
+	url = http://github.com/LearnBoost/Socket.IO-node.git
+[submodule "node-oauth"]
+	path = node-oauth
+	url = http://github.com/ciaranj/node-oauth.git
+[submodule "support/node-oauth"]
+	path = support/node-oauth
+	url = http://github.com/ciaranj/node-oauth.git
+[submodule "support/connect-auth"]
+	path = support/connect-auth
+	url = http://github.com/ciaranj/connect-auth.git
+[submodule "support/flickrnode"]
+	path = support/flickrnode
+	url = http://github.com/ciaranj/flickrnode.git
