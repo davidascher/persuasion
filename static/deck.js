@@ -823,5 +823,4 @@ var webchat;
   };
   
   webchat = new Webchat(query('#chats'));
-
 })();
