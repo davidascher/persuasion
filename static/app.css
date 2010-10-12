@@ -3,6 +3,9 @@ body {
   position:relative;
 }
 
+.hidden {
+  display: none;
+}
 p {margin-bottom:1em;}
 
 a:link, a:hover, a:visited, a:active {text-decoration:none; color:#ef4300; font-weight:bold;}

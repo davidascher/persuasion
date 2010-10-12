@@ -1,6 +1,7 @@
 [bugs]
 - before starting to edit, removeClass('ui-editable') from everything
 - after adding a new slide or after editing, enable double-click-to-edit
+- bespin css is leaking into inputs.
 
 [flickr]
 - persist flickr urls with the slides
@@ -12,8 +13,8 @@
 [ux]
 - merge watercooler & notes using bryan's suggestions
 - allow manipulation of divs:
- - create new divs
- - delete existing divs
+ - create new divs (kindof done)
+ - delete existing divs (kindof done)
  - change div class (get rid of h1/h2/header etc/)
   - allow change slide master (aka picking css stylesheet - each css stylesheet should be
     prefixed by a slide class:  slide.fancy .header {}, slide.business .header {}

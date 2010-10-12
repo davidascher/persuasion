@@ -38,8 +38,32 @@ body
       div.six.column
         div.column_content
           p
-            strong That thing does not exist, but we can 
-            a(href=createPath) create it
+            strong That thing does not exist, but we can create it:
+          :javascript
+            | function createIt() {
+            |       var params = [];
+            |       var title = document.getElementById('title').value;
+            |       var path = document.getElementById('hiddenpath').innerText;
+            |       params.push(encodeURIComponent("title") + "=" + encodeURIComponent(title));
+            |       params.push(encodeURIComponent("path") + "=" + encodeURIComponent(path));
+            |       var qparams = params.join("&");
+            |        var url = '/create?' + qparams;
+            |        var req = new XMLHttpRequest();
+            |        req.open('POST', url);
+            |        var node = this._node;
+            |        req.onreadystatechange = function (aEvt) {
+            |          if (req.readyState == 4) {
+            |            if (req.status == 200) {
+            |              window.location = req.responseText
+            |            }
+            |          }
+            |        };
+            |        req.send("");
+            | }
+          div#hiddenpath.hidden ${path}
+          p
+            input#title(size=20,value="title of your presentation?")
+            a(onclick='createIt()') create it
 
 
   div.fluid_grid_layout#footer

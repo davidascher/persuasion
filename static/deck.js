@@ -164,6 +164,7 @@ var webchat;
       slide.removeChild(editor);
       slideshow._saveCurrentSlide(newcontents, function(contents) {
         slide.innerHTML = contents;
+        slideshow.resetSlideHandlers();
         //$('div.slide *').editable();
       });
     },
@@ -374,7 +375,23 @@ var webchat;
       $(nd).editable();
       $(nd).editable('start');
       $(d).removeClass('selected');
-      slideshow.currentDiv = null;
+      slideshow.currentDiv = nd;
+      $(nd).addClass('selected');
+      slideshow.resetSlideHandlers();
+    },
+
+    addUl: function(e) {
+      // we can tell which div we're on because of the mouseover set variable
+      var d = slideshow.currentDiv;
+      var nd = document.createElement('ul');
+      $(nd).html('<li>first</li><li>second</li><li>third</li>');
+      d.parentNode.insertBefore(nd, d.nextSibling);
+      $(d).removeClass('selected');
+      var li = $(nd.firstChild);
+      slideshow.currentDiv = li;
+      $(li).addClass('selected');
+      $(li).editable();
+      $(li).editable('start');
       slideshow.resetSlideHandlers();
     },
 
@@ -460,7 +477,6 @@ var webchat;
     stopEditingCurrentSlide: function() {
       this._slides[this.current-1].stopEditing();
       this.editing = false;
-      slideshow.resetSlideHandlers();
     },
     
     setupComments: function() {
@@ -697,6 +713,11 @@ var webchat;
             break;
           case 80: // p
             this.addDiv();
+            e.preventDefault();
+            e.stopPropagation();
+            break;
+          case 85: // p
+            this.addUl();
             e.preventDefault();
             e.stopPropagation();
             break;

@@ -13,25 +13,25 @@ body
         div.four.column
           div.column_content
             h1 ${heading}
-      - if (isAuth)
-        div.one.column
-          div.column_content
-            span hi, ${user.username}
-        div.one.column
-          div.column_content
-            a(href="/logout")
-              span logout
-      - else
-        div.one.column
-          div.column_content
-            div.fb_auth
-              a.fb_auth_a(href="/auth/facebook")
-                span auth with facebook
-        div.one.column
-          div.column_content
-            div.twitter_auth
-              a(href="/auth/twitter?next=" + next)
-                span auth with twitter
+        - if (isAuth)
+          div.one.column
+            div.column_content
+              span hi, ${user.username}
+          div.one.column
+            div.column_content
+              a(href="/logout")
+                span logout
+        - else
+          div.one.column
+            div.column_content
+              div.fb_auth
+                a.fb_auth_a(href="/auth/facebook")
+                  span auth with facebook
+          div.one.column
+            div.column_content
+              div.twitter_auth
+                a(href="/auth/twitter?next=" + next)
+                  span auth with twitter
 
   div.fluid_grid_layout#main
     div.six_column.section

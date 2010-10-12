@@ -244,11 +244,11 @@ span.chat {
   display: none;
   position: absolute;
   overflow: hidden;
-  width: 900px;
-  height: 700px;
-  left: 50%;
+  width: 700px;
+  height: 500px;
+  left: 60%;
   top: 50%;
-  margin-top: -350px;
+  margin-top: -250px;
   background-color: #eee;
   /*background-repeat: none;*/
   /*background-size: cover;*/

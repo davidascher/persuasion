@@ -175,9 +175,8 @@ app.get('/', function(req, res, params) {
   if (! req.isAuthenticated() ) {
     res.render('unauthenticated.jade');
   } else {
-    res.render('authenticated.jade', {'locals':
-      {'username': req.getAuthDetails().user.username}
-    });
+    res.writeHead(303, {"Location": "/profile"});
+    res.end();
   }
 })
 
@@ -216,9 +215,33 @@ app.get('/profile', function(req, res, next) {
       'body': "<strong>Sorry, this page is only visible to authenticated users.</strong>\n<p>click on the red links above to become one.</p>"
     }});
   } else {
-    res.render('authenticated.jade', {'locals':
-      {'username': req.getAuthDetails().user.username}
-    });
+    var username = req.getAuthDetails().user.username;
+    redis.lrange("my_presentations::" + username, 0, -1, function(err, pids) {
+      var keys = [];
+      if (pids) { // go backwards so the most recent are first
+        for (var i=pids.length-1; i >=0 ; i--) {
+          var pid = pids[i];
+          keys.push("details::" + pid);
+        }
+      }
+      redis.mget(keys, function(err, details_list) {
+        if (!details_list) {
+          details_list = [];
+        } else {
+          for (var j=0; j < details_list.length; j++) {
+            details_list[j] = JSON.parse(details_list[j]);
+          }
+        }
+        res.render('profile.jade', {'locals':{
+          'username': req.getAuthDetails().user.username,
+          'creations' : res.partial('creations.jade', {
+            'locals' : {
+              creations: details_list
+            }}
+          )}
+        });
+      });
+    })
   }
 })
 
@@ -337,7 +360,9 @@ app.del('/:path/slide/:slideNo', function(req, res) {
 });
 
 // XXX add test
-app.get('/create/:id', function(req, res, next){
+// Need two query parameters: title & path
+
+app.post('/create', function(req, res, next){
   if (! req.isAuthenticated()) {
     res.render('mustbeloggedin.jade', {'locals': {
       'heading': 'who are you?',
@@ -348,7 +373,9 @@ app.get('/create/:id', function(req, res, next){
     }});
     return;
   }
-  var pathname = req.params.id;
+  var title = req.query.title;
+  var pathname = req.query.path;
+  var username = req.getAuthDetails().user.username;
   // if we get here, it shouldn't already exist
   redis.exists(pathname, function(err, exists) {
     if (exists) {
@@ -358,28 +385,39 @@ app.get('/create/:id', function(req, res, next){
     }
 
     redis.incr("ids::presentations", function(err, pid) {
-      // keep the id in a url->id lookup key
-      redis.hset("url2id", pathname, pid, function(err, ok) {
-        fs.readFile('static/defaultDeck.json', function(err, json) {
-          var key ="presentation:" + pid;
-          var slides = JSON.parse(json);
-          var num = 0;
-          for (var i=0; i < slides.length; i++) {
-            // XXX cleanup
-            (function() {
-              var j = i;
-              var slide = slides[j];
-              redis.incr("ids::slides", function(err, sid) {
-                redis.set("slide:"+sid, slide, function(err, ok) {
-                  redis.zadd(key, j, "slide:"+sid);
-                });
-              });
-            })();
-          }
-          // then redirect to the new (original) url
-          res.writeHead(303, {"Content-Type": 'text/plain',
-                              "Location": "/"+pathname});
-          res.end("redirecting to " + pathname);
+      redis.rpush("my_presentations::" + username, pid, function(err, ok) {
+        // keep the id in a url->id lookup key
+        console.log("pid = ", pid);
+        redis.hset("url2id", pathname, pid, function(err, ok) {
+          details = JSON.stringify({'url': pathname,
+                                   'title': title});
+          console.log("setting details to", "details::"+ pid, details);
+          redis.set("details::"+ pid, details, function(err, ok) {
+            fs.readFile('static/defaultDeck.json', function(err, json) {
+              var key ="presentation:" + pid;
+              var slides = JSON.parse(json);
+              var num = 0;
+              for (var i=0; i < slides.length; i++) {
+                // XXX cleanup
+                (function() {
+                  var j = i;
+                  var slide = slides[j];
+                  redis.incr("ids::slides", function(err, sid) {
+                    redis.set("slide:"+sid, slide, function(err, ok) {
+                      redis.zadd(key, j, "slide:"+sid);
+                    });
+                  });
+                })();
+              }
+              res.writeHead(200, {"Content-Type": 'text/plain'});
+              res.end(pathname);
+              
+              //// then redirect to the new (original) url
+              //res.writeHead(303, {"Content-Type": 'text/plain',
+              //                    "Location": "/"+pathname});
+              //res.end("redirecting to " + pathname);
+            });
+          });
         });
       });
     });
@@ -421,8 +459,8 @@ app.get('/random_image/:word', function(req, res) {
 });
 
 // XXX add test
-app.get('/:id', function(req, res, next){
-  var pathname = req.params.id;
+app.get('/:path', function(req, res, next){
+  var pathname = req.params.path;
   var user;
   // figure out if we already have a resource there
   redis.hget('url2id', pathname, function(err, pid) {
@@ -473,12 +511,12 @@ app.get('/:id', function(req, res, next){
         });
       });
     } else {
-      res.render('notthere.jade',
-        {'locals':
-          {'createPath': "/create/"+pathname,
+      res.render('notthere.jade', {'locals': {'createPath': "/create/"+pathname,
            'isAuth': req.isAuthenticated(),
+           'next': req.url,
+           'path': pathname,
            'user': req.getAuthDetails().user,
-          }});
+      }});
     }
   })
 });
