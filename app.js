@@ -22,7 +22,7 @@ var express = require('express'),
 var redis = require('redis').createClient();
 
 try {
-  var keys = require(path.join(process.env.HOME, 'persuasion_secrets.js');
+  var keys = require(path.join(process.env.HOME, 'persuasion_secrets.js'));
   for(var key in keys) {
     global[key]= keys[key];
   }
