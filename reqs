@@ -1,3 +1,4 @@
 sass
 connect
 jade
+connect-redis: provides persistence of session data

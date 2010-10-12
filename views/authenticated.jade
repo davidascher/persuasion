@@ -1,0 +1,54 @@
+!!! 5
+head
+  title Persuasion - logged in as ${username}
+  script(src="http://static.ak.fbcdn.net/connect/en_US/core.js")
+  link(rel="stylesheet",href="/static/app.css",type="text/css",media="screen")
+  link(rel="stylesheet",href="/static/fluid.gs.css",type="text/css",media="screen")
+  link(href='http://fonts.googleapis.com/css?family=Molengo&subset=latin',rel='stylesheet',type='text/css')
+  link(href='http://fonts.googleapis.com/css?family=Neucha&subset=latin',rel='stylesheet',type='text/css')
+body
+  div#header
+    div.fluid_grid_layout
+      div.six_column.section
+        div.four.column
+          div.column_content
+            h1 Welcome to Persuasion
+        div.one.column
+          div.column_content
+            span hi, ${username}
+        div.one.column
+          div.column_content
+            a(href="/logout")
+              span logout
+
+  div.fluid_grid_layout#main
+    div.six_column.section
+      div.two.column
+        div.column_content
+          strong Your most recent creations:
+          ul#creations
+            li first one
+            li second one
+            li third one
+
+      div.two.column
+        div.column_content
+          p your most popular works:
+      div.one.column
+        div.column_content
+          p your colleagues:
+      div.one.column
+        div.column_content
+          p your fans:
+  div#footer
+    div.fluid_grid_layout
+      div.six_column.section
+        div.two.column
+          div.column_content
+            p blah blah
+        div.two.column
+          div.column_content
+            p blah blah
+        div.two.column
+          div.column_content
+            p blah blah

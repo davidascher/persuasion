@@ -280,6 +280,7 @@ var webchat;
     this.setupComments();
     this._update();
     this._setupHandlers();
+    
     $("#commentheader").mousedown(function(e) {
       if (slideshow._commentsShowing) {
         slideshow.hideComments();
@@ -322,6 +323,14 @@ var webchat;
     _setupHandlers: function() {
       // setup all jquery and other handlers we need.
       $('div.slide *').editable();
+      slideshow = this;
+      $('div.slide *').bind("mouseover", function(e) {
+        var rect = e.target.getBoundingClientRect();
+        slideshow.currentDiv = e.target;
+        var divpanel = document.getElementById('divpanel'); // $("#divpanel");
+        divpanel.style.left = (rect.left - 16) + 'px';
+        divpanel.style.top = ((rect.top + rect.height / 2) - 8 )+ 'px';
+      });
       $("body").bind('editFinish', function(e) {
         // save current slide again, picking up any changes.
         var s = slideshow.curSlide;
@@ -332,6 +341,17 @@ var webchat;
         slideshow._saveCurrentSlide(s.innerHTML);
         bits.addClass('ui-editable');
       });
+    },
+    
+    addDiv: function(e) {
+      // we can tell which div we're on because of the mouseover set variable
+      var d = slideshow.currentDiv;
+      var nd = document.createElement(d.tagName);
+      //nd.setAttribute('class', d.getAttribute('class'));
+      $(nd).text('blahblah');
+      d.parentNode.insertBefore(nd, d.nextSibling);
+      //$(d).editable();
+      //$(d).editable('start');
     },
     
     _saveCurrentSlide: function(newcontents, callback) {

@@ -58,6 +58,22 @@ body {
   font-size: 20px;
 }
 
+
+#divpanel {
+  position: fixed;
+  width: 32px;
+  height: 16px;
+  z-index: 1221;
+}
+
+#delete_div {
+  cursor: pointer;
+}
+#add_div {
+  padding-top: 10px;
+  cursor: pointer;
+}
+
 #commentbox {
   position: fixed;
   right: 50px;
@@ -357,7 +373,7 @@ header {
 
 h1 {
   font-size: 100%;
-  display: inline;
+  /*display: inline;*/
   font-size: 36px;
   font-weight: normal;
   padding: 0;

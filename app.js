@@ -6,6 +6,7 @@
 var express = require('express'),
     sys = require('sys'),
     fs = require('fs'),
+    assert = require('assert'),
     path = require('path'),
     url = require('url'),
     jade = require('jade');
@@ -14,6 +15,7 @@ var express = require('express'),
     auth = require('./lib/auth'),
     OAuth = require('oauth').OAuth,
     io = require('./lib/socket.io/index'),
+    RedisStore = require('connect-redis'),
     FlickrAPI = require('./lib/flickr/flickr').FlickrAPI;
 
 var redis = require('redis').createClient();
@@ -33,7 +35,7 @@ flickr = new FlickrAPI(flickrKey);
 
 var app = express.createServer(
                         connect.cookieDecoder(), 
-                        connect.session({ store: new MemoryStore({ reapInterval: -1 }) }),
+                        connect.session({ store: new RedisStore({ maxAge: 300000 }) }),
                         connect.bodyDecoder() /* Only required for the janrain strategy*/,
                         auth( [
                               auth.Anonymous(),
@@ -49,14 +51,17 @@ var STATIC_DIR = path.join(process.cwd(), 'static');
 app.use(express.favicon());  // XXX come up with our own favicon
 app.use(express.logger({format: '":method :url" :status'}))
 app.use(app.router);
+//// XXX understand
+//app.set('views', __dirname + '/views');
+app.set('view options', {
+    layout: false
+});
 
 // XXX understand
 app.use(function(req, res, next) {
   next(new NotFound(req.url));
 });
 
-// XXX understand
-app.set('views', __dirname + '/views');
 
 // Provide our app with the notion of NotFound exceptions
 
@@ -95,18 +100,13 @@ app.error(function(err, req, res, next){
     }
 });
 
-// Here we assume all errors as 500 for the simplicity of
-// this demo, however you can choose whatever you like
-// XXX understand
+function NotFound(msg){
+    this.name = 'NotFound';
+    Error.call(this, msg);
+    Error.captureStackTrace(this, arguments.callee);
+}
 
-app.error(function(err, req, res){
-    res.render('500.jade', {
-        status: 500,
-        locals: {
-            error: err
-        }
-    });
-});
+sys.inherits(NotFound, Error);
 
 // Routes
 // XXX add test
@@ -178,47 +178,12 @@ app.get ('/logout', function(req, res, params) {
 
 // XXX add test
 app.get('/', function(req, res, params) {
-  res.writeHead(200, {'Content-Type': 'text/html'})
-  if( !req.isAuthenticated() ) {
-    // XXX move to jade template
-    res.end('<html>                                              \n\
-        <head>                                             \n\
-          <title>connect Auth -- Not Authenticated</title> \n\
-          <script src="http://static.ak.fbcdn.net/connect/en_US/core.js"></script> \n\
-        </head>                                            \n\
-        <body>                                             \n\
-          <div id="wrapper">                               \n\
-            <h1>Not authenticated</h1>                     \n\
-            <div class="fb_button" id="fb-login" style="float:left; background-position: left -188px">          \n\
-              <a href="/auth/facebook" class="fb_button_medium">        \n\
-                <span id="fb_login_text" class="fb_button_text"> \n\
-                  Connect with Facebook                    \n\
-                </span>                                    \n\
-              </a>                                         \n\
-            </div>                                         \n\
-            <div style="float:left;margin-left:5px">       \n\
-              <a href="/auth/twitter" style="border:0px">  \n\
-                <img style="border:0px" src="http://apiwiki.twitter.com/f/1242697715/Sign-in-with-Twitter-darker.png"/>\n\
-              </a>                                         \n\
-            </div>                                         \n\
-          </div>                                           \n\
-        </body>                                            \n\
-      </html>')
-  }
-  else {
-    // XXX move to jade template
-    res.end('<html>                                              \n\
-        <head>                                             \n\
-          <title>Express Auth -- Authenticated</title>\n\
-        </head>                                            \n\
-        <body>                                             \n\
-          <div id="wrapper">                               \n\
-            <h1>Authenticated</h1>     \n\
-          ' + JSON.stringify( req.getAuthDetails().user ) + '   \n\
-           <h2><a href="/logout">Logout</a></h2>                \n\
-          </div>                                           \n\
-        </body>                                            \n\
-      </html>')
+  if (! req.isAuthenticated() ) {
+    res.render('unauthenticated.jade');
+  } else {
+    res.render('authenticated.jade', {'locals':
+      {'username': req.getAuthDetails().user.username}
+    });
   }
 })
 
@@ -490,23 +455,23 @@ app.get('/:id', function(req, res, next){
     }
   })
 });
-//
-//// XXX add tests
-//var socket = io.listen(app);
-//socket.on('connection', function(client){
-//  // new client is here!
-//  client.on('message', function(e){
-//    //console.log("got a message!", e);
-//    client.broadcast({"type": "message",
-//                "payload": e});
-//  });
-//  client.on('connect', function(e){
-//    //console.log("got a connect!", e);
-//  });
-//  client.on('disconnect', function(){
-//    //console.log("got a disconnect")
-//  });
-//});
+
+// XXX add tests
+var socket = io.listen(app);
+socket.on('connection', function(client){
+  // new client is here!
+  client.on('message', function(e){
+    //console.log("got a message!", e);
+    client.broadcast({"type": "message",
+                "payload": e});
+  });
+  client.on('connect', function(e){
+    //console.log("got a connect!", e);
+  });
+  client.on('disconnect', function(){
+    //console.log("got a disconnect")
+  });
+});
 
 module.exports = {
   'app': app,

@@ -1,17 +1,18 @@
-var redis = require("redis"),
-    client = redis.createClient();
-
-client.on("error", function (err) {
-    console.log("Redis connection error to " + client.host + ":" + client.port + " - " + err);
+var express = require('express'),
+    connect = require('connect'),
+    jade = require('jade');
+    
+var app = express.createServer();
+app.set('views', __dirname + '/views');
+app.set('view options', {
+    layout: false
+});
+app.get('/', function(req, res, next){
+    console.log('in /');
+    //res.writeHead(200, {"Content-Type": "text/plain"});
+    //res.end("blah blah");
+    res.render('unauthenticated.jade');
+    res.end();
 });
 
-client.set("string key", "string val", redis.print);
-client.hset("hash key", "hashtest 1", "some value", redis.print);
-client.hset(["hash key", "hashtest 2", "some other value"], redis.print);
-client.hkeys("hash key", function (err, replies) {
-    console.log(replies.length + " replies:");
-    replies.forEach(function (reply, i) {
-        console.log("    " + i + ": " + reply);
-    });
-    client.quit();
-});
+app.listen(3000);

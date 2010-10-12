@@ -1,0 +1,68 @@
+!!! 5
+head
+  title Persuasion
+  script(src="http://static.ak.fbcdn.net/connect/en_US/core.js")
+  link(rel="stylesheet",href="/static/fluid.gs.css",type="text/css",media="screen")
+  link(rel="stylesheet",href="/static/app.css",type="text/css",media="screen")
+  link(href='http://fonts.googleapis.com/css?family=Molengo&subset=latin',rel='stylesheet',type='text/css')
+  link(href='http://fonts.googleapis.com/css?family=Neucha&subset=latin',rel='stylesheet',type='text/css')
+body
+  div#header
+    div.fluid_grid_layout
+      div.six_column.section
+        div.four.column
+          div.column_content
+            h1 Welcome to Persuasion
+        div.one.column
+          div.column_content
+            div.fb_auth
+              a.fb_auth_a(href="/auth/facebook")
+                span auth with facebook
+        div.one.column
+          div.column_content
+            div.twitter_auth
+              a(href="/auth/twitter")
+                span auth with twitter
+
+  div.fluid_grid_layout#main
+    div.six_column.section
+      div.two.column
+        div.column_content
+          p
+            strong Persuading yourself that you're right is easy.
+          p
+            | Hearing what others have to say is hard.
+
+      div.two.column
+        div.column_content
+          p
+            | This website is trying to help 
+            | you be persuasive, by making it easy to get that feedback, and refine 
+            | your message.
+          p
+            | We'll make it easy to create a compelling presentation and share that with your 
+            | audience.
+      div.one.column
+        div.column_content
+          p
+            | In reality, this website doesn't claim to do any of the above. 
+            | It's just an experiment I'm running to learn about node.js, 
+            | redis, and building social apps. 
+            | If you ever figure out how to use it, do not expect to have your 
+            | data around when you need it.  I will wantonly delete the database 
+            | whenever it suits me.
+      div.one.column
+        div.column_content
+          p another column alkdjaslkd klasd klanother column alkdjaslkd klasd klanother column alkdjaslkd klasd klanother column alkdjaslkd klasd klanother column alkdjaslkd klasd klanother column alkdjaslkd klasd klanother column alkdjaslkd klasd kl
+
+  div.fluid_grid_layout#footer
+    div.six_column.section
+      div.two.column
+        div.column_content
+          p written by david ascher
+      div.two.column
+        div.column_content
+          p just a hobby
+      div.two.column
+        div.column_content
+          p all your content belongs to you
