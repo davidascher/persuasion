@@ -3,6 +3,7 @@
 // N.B. TO USE Any of the OAuth or RPX strategies you will need to provide
 // a copy of the example_keys_file (named keys_file) 
 
+console.log(require.paths);
 var express = require('express'),
     sys = require('sys'),
     fs = require('fs'),
@@ -12,11 +13,11 @@ var express = require('express'),
     jade = require('jade');
     connect = require('connect'), 
     MemoryStore = require('connect/middleware/session/memory'),
-    auth = require('./lib/auth'),
+    auth = require('connect-auth/lib/auth'),
     OAuth = require('oauth').OAuth,
-    io = require('./lib/socket.io/index'),
+    io = require('Socket.IO-node/lib/socket.io'),
     RedisStore = require('connect-redis'),
-    FlickrAPI = require('./lib/flickr/flickr').FlickrAPI;
+    FlickrAPI = require('flickrnode/lib/flickr').FlickrAPI;
 
 var redis = require('redis').createClient();
 
