@@ -22,6 +22,7 @@ li {
 }
 div#main div.section {
   background:url('/static/grey_bottom.gif') #f7f7f7 bottom repeat-x;
+  height: 20em;
 }
 
 div.section div.column {border-left:1px solid #ccc;}

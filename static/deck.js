@@ -280,6 +280,17 @@ var webchat;
     this.setupComments();
     this._update();
     this._setupHandlers();
+    console.log("SETING UP HOVER");
+    //console.log("#logo");
+      $("#logo").hover(function(e) {
+        console.log(e);
+        //console.log($("#logo"));
+        $("#logo").fadeTo('fast', 1);
+      }, function(e) {
+        console.log(e);
+        $("#logo").fadeTo('fast', 0.1);
+      }
+      );
     
     $("#commentheader").mousedown(function(e) {
       if (slideshow._commentsShowing) {
@@ -324,13 +335,23 @@ var webchat;
       // setup all jquery and other handlers we need.
       $('div.slide *').editable();
       slideshow = this;
-      $('div.slide *').bind("mouseover", function(e) {
-        var rect = e.target.getBoundingClientRect();
+      $('div.slide *').hover(function(e) {
+        $(e.target).addClass('selected');
         slideshow.currentDiv = e.target;
-        var divpanel = document.getElementById('divpanel'); // $("#divpanel");
-        divpanel.style.left = (rect.left - 16) + 'px';
-        divpanel.style.top = ((rect.top + rect.height / 2) - 8 )+ 'px';
+        
+        //$('#divpanel').removeClass('hidden');
+        //var rect = e.target.getBoundingClientRect();
+        //var divpanel = document.getElementById('divpanel'); // $("#divpanel");
+        //divpanel.style.left = (rect.left + 4) + 'px';
+        //divpanel.style.top = ((rect.top + rect.height / 2) - 8 )+ 'px';
+      }, function(e) {
+        $(e.target).removeClass('selected');
+        slideshow.currentDiv = null;
+        //console.log(e.target);
+        //if (e.target.id != 'divpanel')
+        //  $('#divpanel').addClass('hidden');
       });
+      
       $("body").bind('editFinish', function(e) {
         // save current slide again, picking up any changes.
         var s = slideshow.curSlide;
@@ -346,14 +367,31 @@ var webchat;
     addDiv: function(e) {
       // we can tell which div we're on because of the mouseover set variable
       var d = slideshow.currentDiv;
-      var nd = document.createElement(d.tagName);
+      var nd = document.createElement('div');
       //nd.setAttribute('class', d.getAttribute('class'));
       $(nd).text('blahblah');
       d.parentNode.insertBefore(nd, d.nextSibling);
-      //$(d).editable();
-      //$(d).editable('start');
+      $(nd).editable();
+      $(nd).editable('start');
+      $(d).removeClass('selected');
+      slideshow.currentDiv = null;
+      slideshow.resetSlideHandlers();
+    },
+
+    resetSlideHandlers: function(e) {
+      slideshow._setupHandlers();
+      slideshow._saveCurrentSlide(slideshow.curSlide.innerHTML);
     },
     
+    removeCurrentDiv: function(e) {
+      // we can tell which div we're on because of the mouseover set variable
+      var d = slideshow.currentDiv;
+      if (!d) return;
+      d.parentNode.removeChild(d);
+      slideshow.currentDiv = null;
+      slideshow.resetSlideHandlers();
+    },
+
     _saveCurrentSlide: function(newcontents, callback) {
       var params = [];
       params.push(encodeURIComponent("slide") + "=" + encodeURIComponent(newcontents));
@@ -422,6 +460,7 @@ var webchat;
     stopEditingCurrentSlide: function() {
       this._slides[this.current-1].stopEditing();
       this.editing = false;
+      slideshow.resetSlideHandlers();
     },
     
     setupComments: function() {
@@ -619,9 +658,17 @@ var webchat;
           return;
         }
       }
+      //console.log(e);
+      //e.stopPropagation();
+      //e.preventDefault();
       var tag = e.target.tagName
       if ((tag == "BODY") || (tag == "HTML")) {
         switch (e.keyCode) {
+          case 8: // delete
+            this.removeCurrentDiv();
+            e.preventDefault(); 
+            e.stopPropagation();
+            break;
           case 65: // a
             if (! this._in_add_hud) {
               this._enterAddMode();
@@ -647,6 +694,11 @@ var webchat;
             if (! this._in_delete_hud) {
               this._enterDeleteMode();
             }
+            break;
+          case 80: // p
+            this.addDiv();
+            e.preventDefault();
+            e.stopPropagation();
             break;
           case 89: // y
             if (this._in_delete_hud) {

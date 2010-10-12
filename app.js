@@ -1,9 +1,5 @@
 // the persuasion server
 
-// N.B. TO USE Any of the OAuth or RPX strategies you will need to provide
-// a copy of the example_keys_file (named keys_file) 
-
-console.log(require.paths);
 var express = require('express'),
     sys = require('sys'),
     fs = require('fs'),
@@ -12,7 +8,6 @@ var express = require('express'),
     url = require('url'),
     jade = require('jade');
     connect = require('connect'), 
-    MemoryStore = require('connect/middleware/session/memory'),
     auth = require('connect-auth/lib/auth'),
     OAuth = require('oauth').OAuth,
     io = require('Socket.IO-node/lib/socket.io'),
@@ -52,8 +47,6 @@ var STATIC_DIR = path.join(process.cwd(), 'static');
 app.use(express.favicon());  // XXX come up with our own favicon
 app.use(express.logger({format: '":method :url" :status'}))
 app.use(app.router);
-//// XXX understand
-//app.set('views', __dirname + '/views');
 app.set('view options', {
     layout: false
 });
@@ -208,6 +201,26 @@ app.get('/:path/slide/:slideNo', function(req, res, next) {
   });
 });
 
+// XXX add test
+app.get('/profile/:username', function(req, res, next) {
+});
+
+// XXX add test
+app.get('/profile', function(req, res, next) {
+  if (! req.isAuthenticated() ) {
+    res.render('mustbeloggedin.jade', {'locals': {
+      'heading': 'who are you?',
+      'next': req.url,
+      'isAuth': false,
+      'username': null,
+      'body': "<strong>Sorry, this page is only visible to authenticated users.</strong>\n<p>click on the red links above to become one.</p>"
+    }});
+  } else {
+    res.render('authenticated.jade', {'locals':
+      {'username': req.getAuthDetails().user.username}
+    });
+  }
+})
 
 // XXX add test
 app.get('/:path/save/:slideNo', function(req, res, next) {
@@ -325,6 +338,16 @@ app.del('/:path/slide/:slideNo', function(req, res) {
 
 // XXX add test
 app.get('/create/:id', function(req, res, next){
+  if (! req.isAuthenticated()) {
+    res.render('mustbeloggedin.jade', {'locals': {
+      'heading': 'who are you?',
+      'next': req.url,
+      'isAuth': req.isAuthenticated(),
+      'username': null,
+      'body': "<strong>Sorry, to create a new resource you need to authenticate.</strong>\n<p>click on the red links above to do so.</p>"
+    }});
+    return;
+  }
   var pathname = req.params.id;
   // if we get here, it shouldn't already exist
   redis.exists(pathname, function(err, exists) {
@@ -399,7 +422,6 @@ app.get('/random_image/:word', function(req, res) {
 
 // XXX add test
 app.get('/:id', function(req, res, next){
-  res.writeHead(200, {"Content-Type": 'text/plain'});
   var pathname = req.params.id;
   var user;
   // figure out if we already have a resource there
@@ -451,8 +473,12 @@ app.get('/:id', function(req, res, next){
         });
       });
     } else {
-      res.writeHead(200, {'Content-Type': 'text/html'});
-      res.end("That thing does not exist, we can <a href='./create/" + pathname + "'>create it</a> (" + pathname + ")");
+      res.render('notthere.jade',
+        {'locals':
+          {'createPath': "/create/"+pathname,
+           'isAuth': req.isAuthenticated(),
+           'user': req.getAuthDetails().user,
+          }});
     }
   })
 });
@@ -462,15 +488,15 @@ var socket = io.listen(app);
 socket.on('connection', function(client){
   // new client is here!
   client.on('message', function(e){
-    //console.log("got a message!", e);
+    console.log("got a message!", e);
     client.broadcast({"type": "message",
                 "payload": e});
   });
   client.on('connect', function(e){
-    //console.log("got a connect!", e);
+    console.log("got a connect!", e);
   });
   client.on('disconnect', function(){
-    //console.log("got a disconnect")
+    console.log("got a disconnect")
   });
 });
 
@@ -478,4 +504,3 @@ module.exports = {
   'app': app,
   'redis': redis,
 }
-//exports.app = app;
