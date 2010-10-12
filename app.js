@@ -22,13 +22,13 @@ var express = require('express'),
 var redis = require('redis').createClient();
 
 try {
-  var example_keys= require('./keys_file');
-  for(var key in example_keys) {
-    global[key]= example_keys[key];
+  var keys = require(path.join(process.env.HOME, 'persuasion_secrets.js');
+  for(var key in keys) {
+    global[key]= keys[key];
   }
 }
 catch(e) {
-  console.log('Unable to locate the keys_file.js file.  Please copy and ammend the example_keys_file.js as appropriate');
+  console.log('Unable to locate the persuasion_secrets.js file.  Please copy and ammend the example_keys_file.js as appropriate, and put it in your HOME directory');
   sys.exit();
 }
 
