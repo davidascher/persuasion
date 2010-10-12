@@ -37,33 +37,39 @@ body
     div.six_column.section
       div.six.column
         div.column_content
-          p
-            strong That thing does not exist, but we can create it:
           :javascript
             | function createIt() {
             |       var params = [];
             |       var title = document.getElementById('title').value;
-            |       var path = document.getElementById('hiddenpath').innerText;
+            |       var path = document.getElementById('path').value;
             |       params.push(encodeURIComponent("title") + "=" + encodeURIComponent(title));
             |       params.push(encodeURIComponent("path") + "=" + encodeURIComponent(path));
             |       var qparams = params.join("&");
-            |        var url = '/create?' + qparams;
-            |        var req = new XMLHttpRequest();
-            |        req.open('POST', url);
-            |        var node = this._node;
-            |        req.onreadystatechange = function (aEvt) {
-            |          if (req.readyState == 4) {
-            |            if (req.status == 200) {
-            |              window.location = req.responseText
-            |            }
-            |          }
-            |        };
-            |        req.send("");
+            |       var url = '/create?' + qparams;
+            |       var req = new XMLHttpRequest();
+            |       req.open('POST', url);
+            |       var node = this._node;
+            |       req.onreadystatechange = function (aEvt) {
+            |         if (req.readyState == 4) {
+            |           if (req.status == 200) {
+            |             window.location = req.responseText
+            |           }
+            |         }
+            |       };
+            |       req.send("");
             | }
-          div#hiddenpath.hidden ${path}
+          - if (url_specified) {
+            p
+              strong That thing does not exist, but we can create it:
+            input#path.hidden(value=path)
+          - } else {
+            p
+              strong Tell us about your presentation:
+            input#path(size=20,value="some_url")
+          - }
           p
-            input#title(size=20,value="title of your presentation?")
-            a(onclick='createIt()') create it
+            input#title(size=20,value="title of your presentation")
+            button(onclick='createIt()') create it
 
 
   div.fluid_grid_layout#footer

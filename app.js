@@ -359,6 +359,31 @@ app.del('/:path/slide/:slideNo', function(req, res) {
   });
 });
 
+app.get('/create', function(req, res, next){
+  if (! req.isAuthenticated()) {
+    res.render('mustbeloggedin.jade', {'locals': {
+      'heading': 'who are you?',
+      'next': req.url,
+      'isAuth': req.isAuthenticated(),
+      'username': null,
+      'body': "<strong>Sorry, to create a new resource you need to authenticate.</strong>\n<p>click on the red links above to do so.</p>"
+    }});
+    return;
+  }
+  var title = req.query.title;
+  var pathname = req.query.path;
+  var username = req.getAuthDetails().user.username;
+  console.log("url_specified is specified!");
+  res.render('notthere.jade', {'locals':
+      {'createPath': "/create/"+pathname,
+       'isAuth': req.isAuthenticated(),
+       'url_specified': false,
+       'next': req.url,
+       'path': pathname,
+       'user': req.getAuthDetails().user,
+  }});
+})
+
 // XXX add test
 // Need two query parameters: title & path
 
@@ -513,6 +538,7 @@ app.get('/:path', function(req, res, next){
     } else {
       res.render('notthere.jade', {'locals': {'createPath': "/create/"+pathname,
            'isAuth': req.isAuthenticated(),
+           'url_specified': true,
            'next': req.url,
            'path': pathname,
            'user': req.getAuthDetails().user,
