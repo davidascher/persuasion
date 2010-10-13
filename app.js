@@ -539,6 +539,14 @@ app.get('/:path', function(req, res, next){
         });
       });
     } else {
+      if (! req.isAuthenticated()) {
+        res.writeHead(303, {"Location": "/profile"});
+        res.end("/profile");
+        // XXX we should have a better handling of next, so that after
+        // auth, they get back to the url they were trying to create.
+        // then again, it's not that important.
+        return;
+      }
       res.render('notthere.jade', {'locals': {'createPath': "/create/"+pathname,
            'isAuth': req.isAuthenticated(),
            'url_specified': true,
