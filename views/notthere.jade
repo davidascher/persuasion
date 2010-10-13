@@ -51,9 +51,9 @@ body
             |       var node = this._node;
             |       req.onreadystatechange = function (aEvt) {
             |         if (req.readyState == 4) {
-            |           if (req.status == 200) {
+            |           if (req.status == 200 || req.status == 303) {
             |             window.location = req.responseText
-            |           }
+            |           } 
             |         }
             |       };
             |       req.send("");

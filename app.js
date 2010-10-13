@@ -106,6 +106,7 @@ sys.inherits(NotFound, Error);
 // XXX add test
 app.get('/static/(*)$', function(req, res, next){
   // XXX understand regex rules better (can I name that regex?)
+  //console.log(req.params[0]);
   var pathname = req.params[0];
   var filename = path.join(STATIC_DIR, pathname);
   res.sendfile(filename);
@@ -389,13 +390,15 @@ app.get('/create', function(req, res, next){
 
 app.post('/create', function(req, res, next){
   if (! req.isAuthenticated()) {
-    res.render('mustbeloggedin.jade', {'locals': {
-      'heading': 'who are you?',
-      'next': req.url,
-      'isAuth': req.isAuthenticated(),
-      'username': null,
-      'body': "<strong>Sorry, to create a new resource you need to authenticate.</strong>\n<p>click on the red links above to do so.</p>"
-    }});
+    res.writeHead(303, {"Location": "/profile"});
+    res.end("/profile");
+    //res.render('mustbeloggedin.jade', {'locals': {
+    //  'heading': 'who are you?',
+    //  'next': req.url,
+    //  'isAuth': req.isAuthenticated(),
+    //  'username': null,
+    //  'body': "<strong>Sorry, to create a new resource you need to authenticate.</strong>\n<p>click on the red links above to do so.</p>"
+    //}});
     return;
   }
   var title = req.query.title;
@@ -550,14 +553,15 @@ app.get('/:path', function(req, res, next){
 // XXX add tests
 var socket = io.listen(app);
 socket.on('connection', function(client){
+  //console.log(client);
+  client.broadcast({"type": "connect",
+                    "payload": "there was a connection"});
+  console.log("got a connect!", client);
   // new client is here!
   client.on('message', function(e){
     console.log("got a message!", e);
     client.broadcast({"type": "message",
-                "payload": e});
-  });
-  client.on('connect', function(e){
-    console.log("got a connect!", e);
+                      "payload": e});
   });
   client.on('disconnect', function(){
     console.log("got a disconnect")

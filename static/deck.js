@@ -281,8 +281,6 @@ var webchat;
     this.setupComments();
     this._update();
     this._setupHandlers();
-    console.log("SETING UP HOVER");
-    //console.log("#logo");
       $("#logo").hover(function(e) {
         console.log(e);
         //console.log($("#logo"));
@@ -336,22 +334,36 @@ var webchat;
       // setup all jquery and other handlers we need.
       $('div.slide *').editable();
       slideshow = this;
-      $('div.slide *').hover(function(e) {
-        $(e.target).addClass('selected');
-        slideshow.currentDiv = e.target;
-        
-        //$('#divpanel').removeClass('hidden');
-        //var rect = e.target.getBoundingClientRect();
-        //var divpanel = document.getElementById('divpanel'); // $("#divpanel");
-        //divpanel.style.left = (rect.left + 4) + 'px';
-        //divpanel.style.top = ((rect.top + rect.height / 2) - 8 )+ 'px';
-      }, function(e) {
-        $(e.target).removeClass('selected');
+
+      $("body").click(function(e) {
+        $(".selected").removeClass('selected');
         slideshow.currentDiv = null;
-        //console.log(e.target);
-        //if (e.target.id != 'divpanel')
-        //  $('#divpanel').addClass('hidden');
       });
+      $('div.slide *').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (! $(this).hasClass('selected')) {
+          $(".selected").removeClass('selected');
+          $(this).addClass('selected');
+          slideshow.currentDiv = e.target;
+        } else {
+          $(".selected").removeClass('selected');
+          slideshow.currentDiv = null;
+        }
+      });
+      
+      $("#stylemenu").draggable();
+
+      $(".thumbnail_shadow").bind("click", function(e) {
+        console.log(e);
+        $("li.current").removeClass("current");
+        $(e.target.parentNode).addClass("current");
+        console.log(e.target.previousSibling);
+        var template = e.target.parentNode.getAttribute("id");
+        $("#deck_template").attr("href", "/static/templates/"+template + ".css");
+      });
+      
+      //$("#iframe.thumbnail").css({'zoom': "25%"});
       
       $("body").bind('editFinish', function(e) {
         // save current slide again, picking up any changes.
@@ -809,10 +821,16 @@ var webchat;
 
       });
       this.socket = new io.Socket(null, {port: 3000});
-      this.socket.connect();
+      console.log("doing connect");
       this.socket.on('message', function(obj){
-        webchat.addMessage(obj.payload);
+        if (obj.type == 'message') {
+          console.log('got a message', obj)
+          webchat.addMessage(obj.payload);
+        } else if (obj.type == 'connect') {
+          webchat.addConnection(obj.payload);
+        }
       });
+      this.socket.connect();
     },
     hide: function() {
       var chatbox = $("#chatbox");
@@ -830,10 +848,15 @@ var webchat;
     say: function(something) {
       var textbox = document.getElementById("newchat");
       textbox.value = '';
-      webchat.socket.send({'author': 'me',
+      webchat.socket.send({'author': 'XXXYYY',
                           'message': something});
       webchat.addMessage({'author': 'you',
                       'message': something});
+    },
+    addConnection: function(line) {
+      var chats = $('#chats'); // for now treat as one big list
+      var chat = $('<li class="chat"> connection! </span></li>');
+      chats.append(chat);
     },
     addMessage: function(line) {
       var chats = $('#chats'); // for now treat as one big list

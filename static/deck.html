@@ -5,16 +5,30 @@
     <title>${TITLE}</title>
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans|Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="/static/deck.css" rel="stylesheet" type="text/css" media="screen"/>
+    <link id="deck_template" href="/static/templates/template_1.css" rel="stylesheet" type="text/css" media="screen"/>
     <link href="/static/jquery-ui-1.7.custom.css" rel="stylesheet" type="text/css" media="screen"/>
     <link href='http://fonts.googleapis.com/css?family=Molengo&subset=latin' rel='stylesheet' type='text/css'/>
     <link id="bespin_base" href="/static/bespin"/>
-    <script src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script src="/static/jquery-1.4.2.min.js"></script>
     <script src="/static/bespin/BespinEmbedded.js"></script>
-    <script src="static/jquery-ui-1.7.custom.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/static/jquery-ui-1.7.custom.min.js" type="text/javascript" charset="utf-8"></script>
     <script src="/static/ui.editable.js"></script>
     <script src="/static/socket.io.js"></script>
   </head>
   <body>
+    <div id="stylemenu">
+      <div id="styleheader"> </div>
+      <ul id="styles">
+        <li id="template_1" class="current thumbnail">
+          <iframe class="thumbnail_iframe" src="/static/templates/template_1.html"></iframe>
+          <div onclick="console.log(e)" class="thumbnail_shadow"/>
+        </li>
+        <li class="thumbnail" id="template_2">
+          <iframe class="thumbnail_iframe" src="/static/templates/template_2.html"></iframe>
+          <div class="thumbnail_shadow"/>
+        </li>
+      </ul>
+    </div>
     <div id="commentbox">
       <div id="commentheader"><span id="commentheadercount"></span> <span id="commentheaderspan">comments</span></div>
       <ul id="comments" class="comments">
@@ -47,7 +61,7 @@
       <div id="slides" class="slides">
         ${SLIDES}
       </div> <!-- slides -->
-    <div id="logo"><a id="gohome" href="/">persuasion</a></div>
+    <div id="logo"><a id="gohome" href="/">home</a></div>
     </div> <!-- presentation -->
     <script type="text/javascript">
       var COMMENTS = COMMENTS_MARKER;

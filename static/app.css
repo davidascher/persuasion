@@ -17,7 +17,11 @@ h1 {font-size: 24px; line-height: 36px; margin-bottom: 18px;}
 h2 {font-size: 18px; line-height: 18px; margin-bottom: 18px; font-weight:bold;}
 h3 {font-size: 12px; line-height: 18px;}
 
-ul, ol {margin-bottom: 18px;}
+ul.list {
+  margin-bottom: 1.5em;
+  margin-top: 1em;
+  margin-left: 1em;
+}
 
 li {
   list-style-type: square;
@@ -34,6 +38,12 @@ div.section div.column_content {padding:18px 5px 0px 5px; margin:0 5px; line-hei
 
 div#header {
   margin:0; width:100%; border-bottom:1px solid #0C0C0C;
+}
+
+.line {
+  margin: 0;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: .5em;
 }
 
 div#header h1 {

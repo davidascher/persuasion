@@ -12,7 +12,7 @@ body
       div.six_column.section
         div.four.column
           div.column_content
-            h1 Welcome to Persuasion
+            h1 Open to Persuasion
         div.one.column
           div.column_content
             span hi, ${username}
@@ -25,8 +25,14 @@ body
     div.six_column.section
       div.two.column
         div.column_content
-          strong Your most recent creations:
-          ${creations}
+          h2
+            a(href="/create") Create 
+            span a new presentation
+        div.column_content
+          div.line
+        div.column_content
+          h2 Your most recent creations:
+            ${creations}
 
       div.two.column
         div.column_content
