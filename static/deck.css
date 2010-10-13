@@ -236,10 +236,8 @@ span.chat {
   display: inline;
   z-index: 4000;
   padding-left: 10px;
-  left: 100px;
+  right: 10px;
   top: 100px;
-  /*min-width: 110px;*/
-  /*min-height: 80;*/
   padding-top: 1px;
   padding-bottom: 1px;
   background-color: rgba(100,50,50,.2);

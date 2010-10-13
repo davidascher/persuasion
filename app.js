@@ -1,5 +1,10 @@
 // the persuasion server
 
+// the redis data structures we use
+
+// url2id --> hset mapping url paths to presentationIDs (pid)
+// presentation:<pid> --> zset mapping slide numbers to slideIDs (sid)
+// ids::comments --> set of comment 
 var express = require('express'),
     sys = require('sys'),
     fs = require('fs'),
@@ -493,47 +498,52 @@ app.get('/:path', function(req, res, next){
   // figure out if we already have a resource there
   redis.hget('url2id', pathname, function(err, pid) {
     if (pid) {
-      if (req.isAuthenticated()) {
-        userDiv = '<a href="/logout?next='+ req.url + '">logout</a> ' + req.getAuthDetails().user.username
-      } else {
-        userDiv = '<a href="/auth/twitter?next='+ req.url + '">login</a>';
-      }
-      fs.readFile('static/deck.html', function(err, deck) {
-        res.writeHead(200, {'Content-Type': 'text/html'});
-        var htmlDeck = deck.toString();
-        // we get all of the slides in the presentation
-        // get the comments on the deck
-        redis.lrange("comment:" + pid, 0, -1, function(err, comments) {
-          var cs = [];
-          // XXX this is all very strange.  I'm not sure what the right
-          // process would be to effectively move a JS data structure to the
-          // client.
-          if (comments) {
-            comments.forEach(function (c) {
-              cs.push(c.toString());
-            });
-          }
-          commentsJSON = JSON.stringify(cs);
-          redis.zrangebyscore("presentation:" + pid, "-inf", "+inf", function(err, slides) {
-            var htmlSlides = [];
-            var num = 0;
-            var commands = [];
-            slides.forEach(function(slideId) {
-              commands.push(['get', slideId]);
-            });
-            redis.multi(commands).exec(function(err, results) {
-              for (var num = 0; num < results.length; num++) {
-                slide = results[num];
-                var html = "<div slideNo='" + num + "' class='slide'>\n" + slide + '</div>';
-                htmlSlides.push(html)
-              }
-              allSlides = htmlSlides.join('\n');
-              // XXX this is hacky, find some real templating system.
-              htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
-              htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
-              htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
-              htmlDeck = htmlDeck.replace('${SLIDES}', allSlides);
-              res.end(htmlDeck);
+      redis.get("details::"+ pid, function(err, details) {
+        details = JSON.parse(details.toString());
+        title = details.title;
+        if (req.isAuthenticated()) {
+          userDiv = '<a href="/logout?next='+ req.url + '">logout</a> ' + req.getAuthDetails().user.username
+        } else {
+          userDiv = '<a href="/auth/twitter?next='+ req.url + '">login</a>';
+        }
+        fs.readFile('static/deck.html', function(err, deck) {
+          res.writeHead(200, {'Content-Type': 'text/html'});
+          var htmlDeck = deck.toString();
+          // we get all of the slides in the presentation
+          // get the comments on the deck
+          redis.lrange("comment:" + pid, 0, -1, function(err, comments) {
+            var cs = [];
+            // XXX this is all very strange.  I'm not sure what the right
+            // process would be to effectively move a JS data structure to the
+            // client.
+            if (comments) {
+              comments.forEach(function (c) {
+                cs.push(c.toString());
+              });
+            }
+            commentsJSON = JSON.stringify(cs);
+            redis.zrangebyscore("presentation:" + pid, "-inf", "+inf", function(err, slides) {
+              var htmlSlides = [];
+              var num = 0;
+              var commands = [];
+              slides.forEach(function(slideId) {
+                commands.push(['get', slideId]);
+              });
+              redis.multi(commands).exec(function(err, results) {
+                for (var num = 0; num < results.length; num++) {
+                  slide = results[num];
+                  var html = "<div slideNo='" + num + "' class='slide'>\n" + slide + '</div>';
+                  htmlSlides.push(html)
+                }
+                allSlides = htmlSlides.join('\n');
+                // XXX this is hacky, find some real templating system.
+                htmlDeck = htmlDeck.replace('COMMENTS_MARKER', commentsJSON, 'g');
+                htmlDeck = htmlDeck.replace('${TITLE}', title, 'g');
+                htmlDeck = htmlDeck.replace('${PATH}', pathname, 'g');
+                htmlDeck = htmlDeck.replace('${USERPANEL}', userDiv);
+                htmlDeck = htmlDeck.replace('${SLIDES}', allSlides);
+                res.end(htmlDeck);
+              });
             });
           });
         });

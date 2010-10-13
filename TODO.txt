@@ -2,6 +2,7 @@
 - before starting to edit, removeClass('ui-editable') from everything
 - after adding a new slide or after editing, enable double-click-to-edit
 - bespin css is leaking into inputs.
+- need to check url available before creating it. (and check again after)
 
 [flickr]
 - persist flickr urls with the slides
